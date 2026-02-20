@@ -1,0 +1,28 @@
+---
+description: Conventions UI/UX — shadcn, Tailwind, layout sidebar, langue FR
+globs: app/**/*.tsx, components/**/*.tsx
+alwaysApply: false
+---
+
+# Design & UI (MHI-IDF)
+
+## Stack
+- **Next.js 15** (App Router), **React 19**, **Tailwind CSS 3**
+- **shadcn/ui** : composants dans `components/ui/` (Button, Card, Badge, etc.). Utiliser `cn()` de `@/lib/utils` pour les classes.
+- **Thème** : variables CSS dans `app/globals.css` (`:root` et `.dark`). Couleurs MHI : bleu (`--primary`, `--mhi-primary`), rouge (`--accent` pour accent, `--mhi-accent`). Sémantiques : `background`, `foreground`, `card`, `muted`, `destructive`, `sidebar`, etc.
+- **Logo** : `components/MhiLogo.tsx` ; image dans `public/mhi-logo.png` (fallback texte si absent).
+
+## Layout
+- **AppShell** (`components/AppShell.tsx`) : affiche la sidebar sur toutes les pages sauf `/` et `/login`.
+- **AppSidebar** (`components/AppSidebar.tsx`) : navigation principale. Ne pas casser la structure des routes en modifiant les liens.
+
+## Conventions
+- Nouveaux écrans "app" : contenu dans une zone avec `p-4 sm:p-6 lg:p-8`, pas de sidebar custom par page.
+- Utiliser les composants `components/ui/*` plutôt que des div/boutons bruts pour boutons, cartes, badges.
+- Liens stylés en bouton : `className={cn(buttonVariants({ variant: "outline" }))}` sur un `<Link>`.
+- Textes : `text-foreground` pour le principal, `text-muted-foreground` pour le secondaire.
+- Interface en **français** (libellés, messages, aria).
+
+## Ne pas casser
+- Routes existantes et paramètres (e.g. `churches/[id]`, `events/[id]/edit`).
+- Logique métier et requêtes Supabase dans les pages ; ne modifier que le rendu (JSX / composants).

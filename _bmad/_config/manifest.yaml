@@ -1,0 +1,50 @@
+agentCustomizations:
+  _config\agents\core-bmad-master.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-analyst.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-architect.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-dev.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-pm.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-qa.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-quick-flow-solo-dev.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-sm.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-tech-writer.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmm-ux-designer.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmb-agent-builder.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmb-module-builder.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\bmb-workflow-builder.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\tea-tea.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\cis-brainstorming-coach.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\cis-creative-problem-solver.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\cis-design-thinking-coach.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\cis-innovation-strategist.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\cis-presentation-master.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+  _config\agents\cis-storyteller.customize.yaml: ac27b5f333e1b8f8397f53b063724e187713fa681b571f42eec00eb58dfd61ce
+modules:
+  - name: bmm
+    version: 6.0.0-Beta.8
+    installDate: 2026-02-14T00:37:16.830Z
+    lastUpdated: 2026-02-14T00:37:16.830Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: bmb
+    version: 0.1.6
+    installDate: 2026-02-14T00:37:26.434Z
+    lastUpdated: 2026-02-14T00:37:26.434Z
+    source: external
+    npmPackage: bmad-builder
+    repoUrl: https://github.com/bmad-code-org/bmad-builder
+  - name: tea
+    version: 1.0.0
+    installDate: 2026-02-14T00:37:32.222Z
+    lastUpdated: 2026-02-14T00:37:32.222Z
+    source: external
+    npmPackage: bmad-method-test-architecture-enterprise
+    repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
+  - name: cis
+    version: 0.1.6
+    installDate: 2026-02-14T00:37:40.360Z
+    lastUpdated: 2026-02-14T00:37:40.360Z
+    source: external
+    npmPackage: bmad-creative-intelligence-suite
+    repoUrl: https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite

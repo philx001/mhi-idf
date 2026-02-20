@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* shadcn/ui + MHI (bleu / rouge logo) */
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.99 0.002 250);
+  --foreground: oklch(0.18 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 260);
+  /* MHI primary = bleu logo (navy) */
+  --primary: oklch(0.32 0.12 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.01 260);
+  --secondary-foreground: oklch(0.28 0.08 260);
+  --muted: oklch(0.96 0.01 260);
+  --muted-foreground: oklch(0.5 0.02 260);
+  /* MHI accent = rouge logo */
+  --accent: oklch(0.55 0.18 25);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.01 260);
+  --input: oklch(0.9 0.01 260);
+  --ring: oklch(0.32 0.12 260);
+  --sidebar: oklch(0.97 0.02 260);
+  --sidebar-foreground: oklch(0.22 0.04 260);
+  --sidebar-primary: oklch(0.32 0.12 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.88 0.06 260);
+  --sidebar-accent-foreground: oklch(0.22 0.06 260);
+  --sidebar-border: oklch(0.88 0.03 260);
+  --sidebar-ring: oklch(0.32 0.12 260);
+  /* Charte MHI (logo) */
+  --mhi-primary: oklch(0.32 0.12 260);
+  --mhi-accent: oklch(0.55 0.18 25);
+  /* Onglets sidebar : défaut fond blanc / texte noir ; hover & actif = bleu type "Créer l'évènement" + texte blanc */
+  --sidebar-nav-bg: oklch(1 0 0);
+  --sidebar-nav-foreground: oklch(0.2 0.02 260);
+  --sidebar-nav-active-bg: oklch(0.55 0.18 264);
+  --sidebar-nav-active-foreground: oklch(0.99 0 0);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 260);
+  --foreground: oklch(0.97 0.005 260);
+  --card: oklch(0.22 0.02 260);
+  --card-foreground: oklch(0.97 0.005 260);
+  --primary: oklch(0.65 0.15 260);
+  --primary-foreground: oklch(0.15 0.02 260);
+  --secondary: oklch(0.28 0.03 260);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.28 0.03 260);
+  --muted-foreground: oklch(0.65 0.02 260);
+  --accent: oklch(0.55 0.18 25);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.6 0.2 25);
+  --border: oklch(0.35 0.02 260);
+  --input: oklch(0.3 0.02 260);
+  --ring: oklch(0.5 0.12 260);
+  --sidebar: oklch(0.2 0.02 260);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.55 0.18 25);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.28 0.03 260);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(0.35 0.02 260);
+  --sidebar-ring: oklch(0.5 0.12 260);
+  --mhi-primary: oklch(0.65 0.15 260);
+  --mhi-accent: oklch(0.55 0.18 25);
+  --sidebar-nav-bg: oklch(0.22 0.02 260);
+  --sidebar-nav-foreground: oklch(0.92 0.01 260);
+  --sidebar-nav-active-bg: oklch(0.58 0.16 264);
+  --sidebar-nav-active-foreground: oklch(0.99 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Zone centrale : dégradé bleu très doux + motif pointillé discret (mode clair) */
+.bg-main-content {
+  position: relative;
+  background-color: oklch(0.975 0.02 260);
+  background-image:
+    radial-gradient(oklch(0.32 0.12 260 / 0.07) 1.5px, transparent 1.5px),
+    radial-gradient(oklch(0.55 0.18 25 / 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* Dégradé doux par-dessus pour lisser */
+.bg-main-content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    160deg,
+    oklch(0.99 0.008 260 / 0.9) 0%,
+    transparent 45%,
+    oklch(0.97 0.02 265 / 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+/* Mode sombre : zone centrale avec fond et dégradés adaptés */
+.dark .bg-main-content {
+  background-color: oklch(0.18 0.02 260);
+  background-image:
+    radial-gradient(oklch(0.5 0.12 260 / 0.12) 1.5px, transparent 1.5px),
+    radial-gradient(oklch(0.55 0.18 25 / 0.08) 1px, transparent 1px);
+}
+
+.dark .bg-main-content::before {
+  background: linear-gradient(
+    160deg,
+    oklch(0.2 0.02 260 / 0.95) 0%,
+    transparent 45%,
+    oklch(0.22 0.02 265 / 0.85) 100%
+  );
+}
+
