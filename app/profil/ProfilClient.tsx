@@ -77,7 +77,6 @@ export function ProfilClient({ user: initialUser }: Props) {
       setPasswordMessage({ type: "error", text: error.message });
       return;
     }
-    setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
     setPasswordMessage({ type: "ok", text: "Mot de passe mis à jour." });
