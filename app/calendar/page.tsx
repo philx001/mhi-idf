@@ -124,7 +124,7 @@ export default async function CalendarPage({
   const canEditMap = Object.fromEntries(
     events.map((e) => [
       e.id,
-      userIsSiege || userChurchId === e.church_id,
+      userIsSiege || (roleInfo.isResponsableEglise && userChurchId === e.church_id),
     ])
   );
 
@@ -180,12 +180,14 @@ export default async function CalendarPage({
         </Suspense>
 
         <div className="mb-4 flex flex-wrap gap-2">
-          <Link
-            href="/events/new"
-            className="text-green-600 hover:underline text-sm"
-          >
-            + Créer un événement
-          </Link>
+          {(userIsSiege || roleInfo.isResponsableEglise) && (
+            <Link
+              href="/events/new"
+              className="text-green-600 hover:underline text-sm"
+            >
+              + Créer un événement
+            </Link>
+          )}
           {userChurchId && (
             <Link
               href={`/churches/${userChurchId}/calendrier`}

@@ -64,7 +64,11 @@ export function ChurchMembersSection({
       </div>
 
       <div className="mb-4">
-        <AddChurchMemberForm churchId={churchId} usersWithoutRole={usersWithoutRole} />
+        <AddChurchMemberForm
+          churchId={churchId}
+          usersWithoutRole={usersWithoutRole}
+          currentUserRole={currentUserRole}
+        />
       </div>
 
       {members.length === 0 ? (

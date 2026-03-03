@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MhiLogo } from "@/components/MhiLogo";
 import { createClient } from "@/lib/supabase/client";
+import { getMyRoleForNav } from "@/app/admin/actions";
 import {
   LayoutDashboard,
   Calendar,
@@ -21,7 +22,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-const navItems = [
+const allNavItems = [
   { href: "/", label: "Accueil", icon: Home },
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/profil", label: "Mon profil", icon: UserCircle },
@@ -39,6 +40,28 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMyRoleForNav().then((r) => setRole(r.role));
+  }, []);
+
+  const navItems = role === "contributeur"
+    ? allNavItems.filter(
+        (item) =>
+          item.href !== "/admin/gestion-utilisateurs" && item.href !== "/events/new"
+      )
+    : allNavItems;
+
+  function isNavItemActive(item: (typeof allNavItems)[0]) {
+    if (pathname === item.href) return true;
+    if (item.href === "/") return false;
+    if (item.href === "/churches")
+      return pathname.startsWith("/churches") && !pathname.includes("/calendrier");
+    if (item.href === "/calendar")
+      return pathname === "/calendar" || (pathname.startsWith("/churches/") && pathname.endsWith("/calendrier"));
+    return pathname.startsWith(item.href);
+  }
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -55,9 +78,7 @@ export function AppSidebar() {
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+          const isActive = isNavItemActive(item);
           const Icon = item.icon;
           return (
             <Link

@@ -14,12 +14,17 @@ const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
 interface AddChurchMemberFormProps {
   churchId: string;
   usersWithoutRole: UserWithoutRole[];
+  /** Si présent et responsable_eglise, seul Contributeur peut être attribué. */
+  currentUserRole?: AppRole | null;
 }
 
 export function AddChurchMemberForm({
   churchId,
   usersWithoutRole,
+  currentUserRole = null,
 }: AddChurchMemberFormProps) {
+  // Responsable d'église peut ajouter Responsable église ou Contributeur pour son église.
+  const roleOptions = ROLE_OPTIONS;
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<AppRole>("contributeur");
   const [loading, setLoading] = useState(false);
@@ -85,7 +90,7 @@ export function AddChurchMemberForm({
           onChange={(e) => setRole(e.target.value as AppRole)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
         >
-          {ROLE_OPTIONS.map((o) => (
+          {roleOptions.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>

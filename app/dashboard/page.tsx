@@ -111,7 +111,7 @@ export default async function DashboardPage() {
   const canEditMap = Object.fromEntries(
     events.map((e) => [
       e.id,
-      userIsSiege || userChurchId === e.church_id,
+      userIsSiege || (roleInfo.isResponsableEglise && userChurchId === e.church_id),
     ])
   );
 

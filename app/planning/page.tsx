@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function PlanningPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; month?: string }>;
 }) {
   let auth;
   try {

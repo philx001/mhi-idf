@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getUserWithTimeout } from "@/lib/supabase/auth";
+import { getUserAndRole } from "@/lib/supabase/queries";
 import { getDemands } from "@/lib/supabase/queries";
 import { DemandFilter } from "./DemandFilter";
 
@@ -28,12 +28,13 @@ export default async function CarteDesBesoinsPage({
 }) {
   const { type } = await searchParams;
   const supabase = await createClient();
-  const user = await getUserWithTimeout(supabase);
+  const auth = await getUserAndRole(supabase);
 
-  if (!user) {
+  if (!auth) {
     redirect("/login");
   }
 
+  const canCreateDemand = auth.roleInfo.isSiege || auth.roleInfo.isResponsableEglise;
   const demands = await getDemands(type);
 
   return (
@@ -57,19 +58,22 @@ export default async function CarteDesBesoinsPage({
           <DemandFilter selectedType={type} />
         </Suspense>
 
-        <div className="mb-4">
-          <Link
-            href="/carte-des-besoins/nouvelle"
-            className="text-green-600 hover:underline text-sm"
-          >
-            + Créer une demande
-          </Link>
-        </div>
+        {canCreateDemand && (
+          <div className="mb-4">
+            <Link
+              href="/carte-des-besoins/nouvelle"
+              className="text-green-600 hover:underline text-sm"
+            >
+              + Créer une demande
+            </Link>
+          </div>
+        )}
 
         {demands.length === 0 ? (
           <p className="text-gray-600">
-            Aucune demande pour le moment. Créez une demande (intervenant, salle,
-            ressource) pour que les autres églises puissent proposer une solution.
+            {canCreateDemand
+              ? "Aucune demande pour le moment. Créez une demande (intervenant, salle, ressource) pour que les autres églises puissent proposer une solution."
+              : "Aucune demande pour le moment."}
           </p>
         ) : (
           <ul className="space-y-4">

@@ -46,7 +46,7 @@ export default async function ChurchDetailPage({
 
   if (canManageMembers) {
     const [data, churchesData] = await Promise.all([
-      getUsersWithRoles(),
+      getUsersWithRoles({ forChurchPage: id }),
       getChurches(true),
     ]);
     if (!data.error) {

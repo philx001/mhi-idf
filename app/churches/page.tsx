@@ -19,7 +19,7 @@ export default async function ChurchesPage() {
   const churches = await getChurches(false);
 
   const canEditMap = Object.fromEntries(
-    churches.map((c) => [c.id, userIsSiege || userChurchId === c.id])
+    churches.map((c) => [c.id, userIsSiege || (roleInfo.isResponsableEglise && userChurchId === c.id)])
   );
 
   return (

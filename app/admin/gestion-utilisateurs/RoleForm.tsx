@@ -34,13 +34,14 @@ export function RoleForm({
   currentUserChurchId = null,
 }: RoleFormProps) {
   const [role, setRole] = useState<AppRole>(initialRole);
-  const [churchId, setChurchId] = useState<string>(initialChurchId ?? "");
+  const [churchId, setChurchId] = useState<string>(initialChurchId ?? currentUserChurchId ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const isEgliseUser = currentUserRole === "responsable_eglise";
+  // Responsable d'église peut attribuer Responsable église ou Contributeur (uniquement pour son église) ; pas Responsable siège.
   const roleOptions = isEgliseUser
     ? ROLE_OPTIONS.filter((o) => o.value !== "responsable_siège")
     : ROLE_OPTIONS;
@@ -97,13 +98,17 @@ export function RoleForm({
           </div>
           {needsChurch && (
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Église</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Église (obligatoire)</label>
               <select
                 value={churchId}
                 onChange={(e) => setChurchId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                required={needsChurch}
               >
-                <option value="">— Aucune —</option>
+                {!churchOptions.some((c) => c.id === churchId) && churchOptions.length > 0 && (
+                  <option value="">— Choisir une église —</option>
+                )}
+                {churchOptions.length === 0 && <option value="">Aucune église disponible</option>}
                 {churchOptions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
