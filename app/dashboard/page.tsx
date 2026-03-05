@@ -296,6 +296,9 @@ export default async function DashboardPage() {
               Mon calendrier d&apos;église
             </Link>
           )}
+          <Link href="/annuaire" className={cn(buttonVariants({ variant: "outline" }))}>
+            Annuaire
+          </Link>
           <Link href="/churches" className={cn(buttonVariants({ variant: "outline" }))}>
             Profils des églises
           </Link>

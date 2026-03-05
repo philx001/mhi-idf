@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { recordLoginActivity } from "./actions";
 
 function parseHashParams(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -34,7 +35,10 @@ export function LoginForm() {
     createClient()
       .auth.getUser()
       .then(({ data: { user } }) => {
-        if (user) router.replace("/dashboard");
+        if (user) {
+          recordLoginActivity().catch(() => {});
+          router.replace("/dashboard");
+        }
       })
       .catch(() => {})
       .finally(() => clearTimeout(timeout));
@@ -66,6 +70,8 @@ export function LoginForm() {
         );
         return;
       }
+
+      await recordLoginActivity().catch(() => {});
 
       router.push("/dashboard");
       router.refresh();

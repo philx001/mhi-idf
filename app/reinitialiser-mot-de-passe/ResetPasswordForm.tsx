@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { recordLoginActivity } from "@/app/login/actions";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export function ResetPasswordForm() {
       setError(err.message);
       return;
     }
+    await recordLoginActivity().catch(() => {});
     router.push("/dashboard");
     router.refresh();
   }

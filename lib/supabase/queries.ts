@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "./server";
+import { createAdminClient } from "./admin";
 import { getUserWithTimeout } from "./auth";
 import type {
   Church,
@@ -601,4 +602,118 @@ export async function getNotifications(
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as Notification[];
+}
+
+// --- Annuaire (répertoire des membres) ---
+
+export type DirectoryMember = {
+  id: string;
+  first_name: string;
+  full_name: string;
+  phone: string;
+  avatar_url: string | null;
+  church_name: string | null;
+};
+
+/**
+ * Liste des membres du réseau pour l'annuaire (lecture seule, tous les rôles).
+ * Utilise l'API admin pour récupérer les profils (user_metadata).
+ */
+export async function getDirectoryMembers(): Promise<DirectoryMember[]> {
+  const admin = createAdminClient();
+  const [rolesResult, usersResult, churchesResult] = await Promise.all([
+    admin.from("user_roles").select("user_id, church_id"),
+    admin.auth.admin.listUsers({ perPage: 500 }),
+    admin.from("churches").select("id, name"),
+  ]);
+
+  if (rolesResult.error) throw rolesResult.error;
+  if (usersResult.error) throw usersResult.error;
+
+  const roles = rolesResult.data ?? [];
+  const authUsers = usersResult.data.users ?? [];
+  const churches = churchesResult.data ?? [];
+  const churchMap = Object.fromEntries(churches.map((c) => [c.id, c.name]));
+
+  const roleMap = Object.fromEntries(
+    roles.map((r) => [
+      r.user_id,
+      { church_id: r.church_id, church_name: r.church_id ? churchMap[r.church_id] ?? null : null },
+    ])
+  );
+
+  const roleUserIds = new Set(roles.map((r) => r.user_id));
+
+  const members: DirectoryMember[] = authUsers
+    .filter((u) => roleUserIds.has(u.id) && !(u.banned_until && new Date(u.banned_until) > new Date()))
+    .map((u) => {
+      const meta = (u.user_metadata as Record<string, unknown>) ?? {};
+      const r = roleMap[u.id];
+      return {
+        id: u.id,
+        first_name: (meta.first_name as string) ?? "",
+        full_name: (meta.full_name as string) ?? "",
+        phone: (meta.phone as string) ?? "",
+        avatar_url: (meta.avatar_url as string) ?? null,
+        church_name: r?.church_name ?? null,
+      };
+    })
+    .sort((a, b) => {
+      const nameA = `${a.full_name} ${a.first_name}`.trim() || a.id;
+      const nameB = `${b.full_name} ${b.first_name}`.trim() || b.id;
+      return nameA.localeCompare(nameB);
+    });
+
+  return members;
+}
+
+// --- Journal d'activité (connexions) ---
+
+export type LoginActivityEntry = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  email: string | null;
+  display_name: string | null;
+};
+
+/**
+ * Liste des connexions pour le journal d'activité.
+ * Réservé au responsable siège. Utilise l'API admin.
+ */
+export async function getLoginActivity(limit = 200): Promise<LoginActivityEntry[]> {
+  const admin = createAdminClient();
+  const { data: activities, error: actError } = await admin
+    .from("login_activity")
+    .select("id, user_id, created_at, ip_address, user_agent")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (actError) throw actError;
+  if (!activities?.length) return [];
+
+  const userIds = [...new Set(activities.map((a) => a.user_id))];
+  const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 500 });
+  const authUsers = usersData?.users ?? [];
+  const userMap = Object.fromEntries(
+    authUsers.map((u) => {
+      const meta = (u.user_metadata as Record<string, unknown>) ?? {};
+      const displayName =
+        [meta.first_name, meta.full_name].filter(Boolean).join(" ").trim() ||
+        (u.email ?? u.id);
+      return [u.id, { email: u.email ?? null, display_name: displayName || null }];
+    })
+  );
+
+  return activities.map((a) => ({
+    id: a.id,
+    user_id: a.user_id,
+    created_at: a.created_at,
+    ip_address: a.ip_address,
+    user_agent: a.user_agent,
+    email: userMap[a.user_id]?.email ?? null,
+    display_name: userMap[a.user_id]?.display_name ?? null,
+  }));
 }
