@@ -13,6 +13,7 @@ type Church = { id: string; name: string };
 
 const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Admin",
+  responsable_siège: "Admin",
   responsable_eglise: "Responsable église",
   membre: "Membre",
 };

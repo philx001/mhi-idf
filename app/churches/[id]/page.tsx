@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserWithTimeout } from "@/lib/supabase/auth";
 import { getChurchById, isSiege, canEditChurch, getUserChurchId } from "@/lib/supabase/queries";
-import { getUsersWithRoles } from "@/app/admin/actions";
+import { getUsersWithRoles, type AppRole } from "@/app/admin/actions";
 import { getChurches } from "@/lib/supabase/queries";
 import { ChurchMembersSection } from "./ChurchMembersSection";
 import type { Church } from "@/types/database";
@@ -38,9 +38,9 @@ export default async function ChurchDetailPage({
     notFound();
   }
 
-  let members: { id: string; email: string | undefined; role: "admin" | "responsable_eglise" | "membre"; church_id: string | null; church_name: string | null; banned: boolean }[] = [];
+  let members: { id: string; email: string | undefined; role: AppRole; church_id: string | null; church_name: string | null; banned: boolean }[] = [];
   let usersWithoutRole: { id: string; email: string | undefined }[] = [];
-  let currentUserRole: "admin" | "responsable_eglise" | "membre" | null = null;
+  let currentUserRole: AppRole | null = null;
   let currentUserChurchId: string | null = null;
   let churchesList: { id: string; name: string }[] = [];
 

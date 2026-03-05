@@ -49,7 +49,7 @@ export function RoleForm({
     ? churches.filter((c) => c.id === currentUserChurchId)
     : churches;
   const needsChurch = role === "responsable_eglise" || role === "membre";
-  const finalChurchId = role === "admin" ? null : churchId || null;
+  const finalChurchId = (role === "admin" || role === "responsable_siège") ? null : churchId || null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
