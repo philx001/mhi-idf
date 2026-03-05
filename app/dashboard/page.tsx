@@ -88,7 +88,7 @@ export default async function DashboardPage() {
   const userIsSiege = roleInfo.isSiege;
   const userChurchId = roleInfo.churchId;
   const roleLabel =
-    roleInfo.role === "admin"
+    roleInfo.role === "admin" || roleInfo.role === "responsable_siège"
       ? "Admin"
       : roleInfo.role === "responsable_eglise"
       ? "Responsable église"

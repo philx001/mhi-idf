@@ -104,7 +104,7 @@ export default async function GestionUtilisateursPage() {
                         {u.email ?? "(sans email)"}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {u.role === "admin" ? "Admin" : u.role === "responsable_eglise" ? "Responsable église" : "Contributeur"}
+                        {u.role === "admin" || u.role === "responsable_siège" ? "Admin" : u.role === "responsable_eglise" ? "Responsable église" : "Contributeur"}
                         {u.church_name && ` · ${u.church_name}`}
                       </p>
                       {u.banned && (

@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserWithTimeout } from "@/lib/supabase/auth";
 import { getUserAndRole } from "@/lib/supabase/queries";
 
-export type AppRole = "admin" | "responsable_eglise" | "membre";
+export type AppRole = "admin" | "responsable_eglise" | "responsable_siège" | "membre";
 
 export type UserWithRole = {
   id: string;
@@ -147,7 +147,9 @@ async function getCurrentRoleAndChurch(): Promise<{ role: AppRole; churchId: str
   const supabase = await createClient();
   const auth = await getUserAndRole(supabase);
   if (!auth) return null;
-  return { role: auth.roleInfo.role, churchId: auth.roleInfo.churchId };
+  // Normaliser responsable_siège → admin (rétrocompat avant migration 020)
+  const role: AppRole = auth.roleInfo.role === "responsable_siège" ? "admin" : auth.roleInfo.role;
+  return { role, churchId: auth.roleInfo.churchId };
 }
 
 /** Comme getCurrentRoleAndChurch avec isCroissyResponsible (responsable église dont le nom d'église contient "croissy"). */

@@ -47,7 +47,7 @@ export async function getChurchById(id: string): Promise<Church | null> {
 }
 
 export type UserRoleInfo = {
-  role: "admin" | "responsable_eglise" | "membre";
+  role: "admin" | "responsable_eglise" | "responsable_siège" | "membre";
   isResponsableSiege: boolean;
   isResponsableEglise: boolean;
   /** Alias pour isResponsableSiege (droits niveau siège). */
@@ -75,9 +75,9 @@ async function getUserAndRoleUncached(
     console.error("[getUserAndRole] user_roles query error:", error.code, error.message);
   }
 
-  const role = (data?.role as "admin" | "responsable_eglise" | "membre") ?? "membre";
+  const role = (data?.role as "admin" | "responsable_eglise" | "responsable_siège" | "membre") ?? "membre";
   const churchId = data?.church_id ?? null;
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "responsable_siège";
   const isResponsableEglise = role === "responsable_eglise";
 
   return {
