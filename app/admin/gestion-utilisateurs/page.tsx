@@ -9,6 +9,7 @@ import { RemoveFromChurchButton } from "@/app/churches/[id]/RemoveFromChurchButt
 import { RoleForm } from "./RoleForm";
 import { InviteForm } from "./InviteForm";
 import { SetPasswordButton } from "./SetPasswordButton";
+import { isAdminDisplayAsResponsable, ADMIN_DISPLAY_AS_RESPONSABLE } from "@/lib/admin-display-config";
 
 export default async function GestionUtilisateursPage() {
   const supabase = await createClient();
@@ -104,8 +105,11 @@ export default async function GestionUtilisateursPage() {
                         {u.email ?? "(sans email)"}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {u.role === "admin" || u.role === "responsable_siège" ? "Admin" : u.role === "responsable_eglise" ? "Responsable église" : "Contributeur"}
-                        {u.church_name && ` · ${u.church_name}`}
+                        {auth.roleInfo.isSiege
+                          ? (u.role === "admin" || u.role === "responsable_siège" ? "Admin" : u.role === "responsable_eglise" ? "Responsable église" : "Contributeur") + (u.church_name ? ` · ${u.church_name}` : "")
+                          : isAdminDisplayAsResponsable(u.email)
+                          ? `${ADMIN_DISPLAY_AS_RESPONSABLE.displayLabel} · ${ADMIN_DISPLAY_AS_RESPONSABLE.displayChurchName}`
+                          : (u.role === "responsable_eglise" ? "Responsable église" : "Contributeur") + (u.church_name ? ` · ${u.church_name}` : "")}
                       </p>
                       {u.banned && (
                         <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-red-100 text-red-800 rounded">
@@ -114,25 +118,31 @@ export default async function GestionUtilisateursPage() {
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <SetPasswordButton userId={u.id} email={u.email ?? "utilisateur"} />
-                      <RevokeUserButton
-                        userId={u.id}
-                        email={u.email ?? "utilisateur"}
-                        banned={u.banned}
-                        currentUserId={auth.user.id}
-                      />
-                      {u.church_id &&
-                        u.role !== "admin" &&
-                        auth.user.id !== u.id && (
-                          <RemoveFromChurchButton
+                      {!(isAdminDisplayAsResponsable(u.email) && !auth.roleInfo.isSiege) && (
+                        <>
+                          <SetPasswordButton userId={u.id} email={u.email ?? "utilisateur"} />
+                          <RevokeUserButton
                             userId={u.id}
-                            churchId={u.church_id}
                             email={u.email ?? "utilisateur"}
+                            banned={u.banned}
+                            currentUserId={auth.user.id}
                           />
-                        )}
+                          {u.church_id &&
+                            u.role !== "admin" &&
+                            u.role !== "responsable_siège" &&
+                            auth.user.id !== u.id && (
+                              <RemoveFromChurchButton
+                                userId={u.id}
+                                churchId={u.church_id}
+                                email={u.email ?? "utilisateur"}
+                              />
+                            )}
+                        </>
+                      )}
                     </div>
                   </div>
-                  {/* Responsable d'église ne peut pas modifier un administrateur (jamais dans la liste). Pour son église il peut modifier membre et responsable église. */}
+                  {/* Responsable d'église ne peut pas modifier un administrateur. L'admin masqué n'affiche pas le formulaire pour les non-admins. */}
+                  {!(isAdminDisplayAsResponsable(u.email) && !auth.roleInfo.isSiege) && (
                   <RoleForm
                     mode="edit"
                     userId={u.id}
@@ -143,6 +153,7 @@ export default async function GestionUtilisateursPage() {
                     currentUserRole={currentUserRole}
                     currentUserChurchId={currentUserChurchId}
                   />
+                  )}
                 </li>
               ))}
             </ul>

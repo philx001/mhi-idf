@@ -103,7 +103,7 @@ export function ProfilClient({ user: initialUser }: Props) {
       return;
     }
     if (!ln) {
-      setProfileMessage({ type: "error", text: "Le nom complet est obligatoire." });
+      setProfileMessage({ type: "error", text: "Le nom est obligatoire." });
       return;
     }
     if (!em) {
@@ -184,7 +184,7 @@ export function ProfilClient({ user: initialUser }: Props) {
             </div>
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-foreground mb-1">
-                Nom complet <span className="text-destructive">*</span>
+                Nom <span className="text-destructive">*</span>
               </label>
               <input
                 id="full_name"
@@ -193,7 +193,7 @@ export function ProfilClient({ user: initialUser }: Props) {
                 onChange={(e) => setFull_name(e.target.value)}
                 required
                 className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring"
-                placeholder="Nom et prénom"
+                placeholder="Votre nom"
               />
             </div>
             <div>

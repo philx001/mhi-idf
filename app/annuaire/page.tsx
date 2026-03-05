@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserAndRole, getDirectoryMembers } from "@/lib/supabase/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemberAvatar } from "./MemberAvatar";
+import { isAdminDisplayAsResponsable, ADMIN_DISPLAY_AS_RESPONSABLE } from "@/lib/admin-display-config";
 
 export default async function AnnuairePage() {
   const supabase = await createClient();
@@ -13,7 +14,15 @@ export default async function AnnuairePage() {
     redirect("/login");
   }
 
-  const members = await getDirectoryMembers();
+  let members = await getDirectoryMembers();
+  // Pour les non-admins : l'admin est affiché avec "Eglise de Croissy" comme église
+  if (!auth.roleInfo.isSiege) {
+    members = members.map((m) =>
+      isAdminDisplayAsResponsable(m.email)
+        ? { ...m, church_name: ADMIN_DISPLAY_AS_RESPONSABLE.displayChurchName }
+        : m
+    );
+  }
 
   return (
     <main className="min-h-screen p-4 sm:p-6 lg:p-8">
@@ -55,7 +64,7 @@ export default async function AnnuairePage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-foreground truncate">
-                        {m.first_name} {m.full_name}
+                        {[m.first_name?.trim(), m.full_name?.trim()].filter(Boolean).join(" ") || "—"}
                       </p>
                       {m.phone && (
                         <p className="text-sm text-muted-foreground">

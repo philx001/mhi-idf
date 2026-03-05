@@ -608,6 +608,7 @@ export async function getNotifications(
 
 export type DirectoryMember = {
   id: string;
+  email: string | undefined;
   first_name: string;
   full_name: string;
   phone: string;
@@ -651,6 +652,7 @@ export async function getDirectoryMembers(): Promise<DirectoryMember[]> {
       const r = roleMap[u.id];
       return {
         id: u.id,
+        email: u.email ?? undefined,
         first_name: (meta.first_name as string) ?? "",
         full_name: (meta.full_name as string) ?? "",
         phone: (meta.phone as string) ?? "",
