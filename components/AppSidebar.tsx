@@ -19,7 +19,7 @@ import {
   Home,
   UserCircle,
   LogOut,
-  AddressBook,
+  BookUser,
   ScrollText,
 } from "lucide-react";
 
@@ -27,7 +27,7 @@ const allNavItems = [
   { href: "/", label: "Accueil", icon: Home },
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/profil", label: "Mon profil", icon: UserCircle },
-  { href: "/annuaire", label: "Annuaire", icon: AddressBook },
+  { href: "/annuaire", label: "Annuaire", icon: BookUser },
   { href: "/journal-activite", label: "Journal d'activité", icon: ScrollText },
   { href: "/events/new", label: "Nouvel événement", icon: PlusCircle },
   { href: "/calendar", label: "Calendrier", icon: Calendar },
