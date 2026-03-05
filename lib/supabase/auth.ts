@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
-const AUTH_TIMEOUT_MS = 1500;
+/** Délai max pour getuser (10 s). Trop court = déconnexions aléatoires si Supabase lent. */
+const AUTH_TIMEOUT_MS = 10_000;
 
 /**
  * Récupère l'utilisateur avec un timeout pour éviter les blocages

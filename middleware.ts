@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const SESSION_REFRESH_TIMEOUT_MS = 1500;
+/** Délai max pour rafraîchir la session (5 s). Trop court = perte de session au chargement. */
+const SESSION_REFRESH_TIMEOUT_MS = 5_000;
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;

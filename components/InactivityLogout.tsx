@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const INACTIVITY_MS = 15 * 60 * 1000; // 15 minutes
-const THROTTLE_MS = 1000; // Ne pas réinitialiser le timer plus d'une fois par seconde
+/** Délai d'inactivité avant déconnexion automatique (15 minutes, fixe). */
+const INACTIVITY_MS = 15 * 60 * 1000;
+/** Ne pas réinitialiser le timer plus d'une fois par seconde (évite surcharge). */
+const THROTTLE_MS = 1000;
 
 export function InactivityLogout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -34,7 +36,7 @@ export function InactivityLogout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     resetTimer();
 
-    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click", "focus"];
     events.forEach((event) => window.addEventListener(event, resetTimer));
 
     return () => {
