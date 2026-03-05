@@ -8,13 +8,13 @@ type UserWithoutRole = { id: string; email: string | undefined };
 
 const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
   { value: "responsable_eglise", label: "Responsable église" },
-  { value: "contributeur", label: "Contributeur" },
+  { value: "membre", label: "Membre" },
 ];
 
 interface AddChurchMemberFormProps {
   churchId: string;
   usersWithoutRole: UserWithoutRole[];
-  /** Si présent et responsable_eglise, seul Contributeur peut être attribué. */
+  /** Si présent et responsable_eglise, seul Membre peut être attribué. */
   currentUserRole?: AppRole | null;
 }
 
@@ -23,10 +23,10 @@ export function AddChurchMemberForm({
   usersWithoutRole,
   currentUserRole = null,
 }: AddChurchMemberFormProps) {
-  // Responsable d'église peut ajouter Responsable église ou Contributeur pour son église.
+  // Responsable d'église peut ajouter Responsable église ou Membre pour son église.
   const roleOptions = ROLE_OPTIONS;
   const [userId, setUserId] = useState("");
-  const [role, setRole] = useState<AppRole>("contributeur");
+  const [role, setRole] = useState<AppRole>("membre");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -43,7 +43,7 @@ export function AddChurchMemberForm({
       return;
     }
     setUserId("");
-    setRole("contributeur");
+    setRole("membre");
     router.refresh();
   }
 

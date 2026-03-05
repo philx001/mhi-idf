@@ -73,7 +73,18 @@ export async function getPlanningPageData(params?: {
       limit: 200,
     });
 
-    const sessionIds = sessions.map((s) => s.id);
+    const today = new Date().toISOString().split("T")[0];
+    const sortedSessions = [...sessions].sort((a, b) => {
+      const da = a.session_date;
+      const db = b.session_date;
+      const aUpcoming = da >= today;
+      const bUpcoming = db >= today;
+      if (aUpcoming && bUpcoming) return da.localeCompare(db);
+      if (!aUpcoming && !bUpcoming) return db.localeCompare(da);
+      return aUpcoming ? -1 : 1;
+    });
+
+    const sessionIds = sortedSessions.map((s) => s.id);
     const signups = await getPrayerSlotSignups(sessionIds);
 
     const userIds = [...new Set(signups.map((s) => s.user_id))];
@@ -82,13 +93,32 @@ export async function getPlanningPageData(params?: {
     let churchMembers: { id: string; email: string }[] = [];
     if (canAddSignup) {
       try {
-        const usersData = await getUsersWithRoles();
+        // Siège : tous les utilisateurs. Responsable église : seulement les membres de son église, sauf responsable de l'église de Croissy qui voit tous.
+        const isCroissyResponsible =
+          roleInfo.isResponsableEglise &&
+          roleInfo.churchId &&
+          (async () => {
+            const { data } = await supabase
+              .from("churches")
+              .select("name")
+              .eq("id", roleInfo.churchId)
+              .single();
+            return (data?.name ?? "").toLowerCase().includes("croissy");
+          })();
+        const useAllUsers =
+          roleInfo.isSiege || (await isCroissyResponsible);
+        const usersData = await getUsersWithRoles({
+          forPlanningAllUsers: useAllUsers,
+        });
         if (!usersData.error && usersData.users.length > 0) {
-          const filtered = roleInfo.isResponsableEglise && roleInfo.churchId
-            ? usersData.users.filter(
-                (u) => u.church_id === roleInfo.churchId || u.id === user.id
-              )
-            : usersData.users;
+          const filtered =
+            roleInfo.isResponsableEglise &&
+            roleInfo.churchId &&
+            !useAllUsers
+              ? usersData.users.filter(
+                  (u) => u.church_id === roleInfo.churchId || u.id === user.id
+                )
+              : usersData.users;
           churchMembers = filtered.map((u) => ({
             id: u.id,
             email: u.email ?? "(sans email)",
@@ -100,7 +130,7 @@ export async function getPlanningPageData(params?: {
     }
 
     return {
-      sessions,
+      sessions: sortedSessions,
       signups,
       userDisplayNames,
       canCreateSession,

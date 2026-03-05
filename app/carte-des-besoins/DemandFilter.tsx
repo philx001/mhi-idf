@@ -6,7 +6,12 @@ const DEMAND_TYPE_LABELS: Record<string, string> = {
   "": "Tous les types",
   intervenant: "Intervenant",
   salle: "Salle",
-  ressource: "Ressource",
+  ressource: "Ressources Diverses",
+  financier: "Financier",
+  conseil: "Conseil",
+  aide_logistique: "Aide Logistique",
+  ressources_spirituelles: "Ressources Spirituelles",
+  autre: "Autre",
 };
 
 export function DemandFilter({ selectedType }: { selectedType?: string }) {

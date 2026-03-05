@@ -20,7 +20,7 @@ interface RoleFormProps {
 const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
   { value: "responsable_siège", label: "Responsable siège" },
   { value: "responsable_eglise", label: "Responsable église" },
-  { value: "contributeur", label: "Contributeur" },
+  { value: "membre", label: "Membre" },
 ];
 
 export function RoleForm({
@@ -28,7 +28,7 @@ export function RoleForm({
   userId,
   email,
   churches,
-  initialRole = "contributeur",
+  initialRole = "membre",
   initialChurchId = null,
   currentUserRole = null,
   currentUserChurchId = null,
@@ -48,7 +48,7 @@ export function RoleForm({
   const churchOptions = isEgliseUser && currentUserChurchId
     ? churches.filter((c) => c.id === currentUserChurchId)
     : churches;
-  const needsChurch = role === "responsable_eglise" || role === "contributeur";
+  const needsChurch = role === "responsable_eglise" || role === "membre";
   const finalChurchId = role === "responsable_siège" ? null : churchId || null;
 
   async function handleSubmit(e: React.FormEvent) {

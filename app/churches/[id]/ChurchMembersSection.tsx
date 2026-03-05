@@ -5,6 +5,7 @@ import { RoleForm } from "@/app/admin/gestion-utilisateurs/RoleForm";
 import { assignRole, type AppRole, type UserWithRole } from "@/app/admin/actions";
 import { AddChurchMemberForm } from "./AddChurchMemberForm";
 import { RemoveFromChurchButton } from "./RemoveFromChurchButton";
+import { InviteForm } from "@/app/admin/gestion-utilisateurs/InviteForm";
 
 type UserWithoutRole = { id: string; email: string | undefined };
 type Church = { id: string; name: string };
@@ -12,7 +13,7 @@ type Church = { id: string; name: string };
 const ROLE_LABELS: Record<AppRole, string> = {
   responsable_siège: "Responsable siège",
   responsable_eglise: "Responsable église",
-  contributeur: "Contributeur",
+  membre: "Membre",
 };
 
 interface ChurchMembersSectionProps {
@@ -48,19 +49,21 @@ export function ChurchMembersSection({
           Seules les personnes qui ont déjà un compte dans l’application (inscrit ou invité) peuvent être ajoutées ici. Pour ajouter quelqu’un qui n’a pas encore de compte :
         </p>
         <ol className="list-decimal list-inside space-y-1 mb-2">
-          <li>Allez dans la{" "}
+          <li>Cliquez sur <strong>« + Inviter un membre »</strong> ci-dessous et saisissez son email. Un email lui sera envoyé (lien 24 h) et il sera ajouté comme membre. Ou allez dans la{" "}
             <Link href="/admin/gestion-utilisateurs" className="text-blue-600 hover:underline font-medium">
               Gestion des utilisateurs
             </Link>{" "}
             (lien dans le tableau de bord).
           </li>
-          <li>Cliquez sur <strong>« + Inviter un membre »</strong> et saisissez son adresse email.</li>
-          <li>Une fois qu’il aura accepté l’invitation par email, il apparaîtra dans « Utilisateurs sans rôle ».</li>
-          <li>Revenez ici (ou dans Gestion des utilisateurs) et attribuez-lui un rôle pour cette église.</li>
+          <li>Une fois qu’il aura accepté l’invitation par email, il apparaîtra dans « membres ».</li>
         </ol>
         <p className="text-amber-800 text-xs">
           L’email de contact de l’église (ex. contact_cergy@gmail.com) est uniquement une information du profil : il ne crée pas de compte. Il faut inviter cette adresse pour qu’elle devienne utilisateur.
         </p>
+      </div>
+
+      <div className="mb-4">
+        <InviteForm defaultChurchId={churchId} />
       </div>
 
       <div className="mb-4">

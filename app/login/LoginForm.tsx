@@ -5,12 +5,28 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+function parseHashParams(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const hash = window.location.hash.slice(1);
+  return Object.fromEntries(new URLSearchParams(hash));
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const params = parseHashParams();
+    if (params.error_code === "otp_expired" || params.error === "access_denied") {
+      setError(
+        "Ce lien d'invitation a expiré ou a déjà été utilisé. Demandez une nouvelle invitation à votre responsable, ou utilisez « Mot de passe oublié » si vous avez déjà un compte."
+      );
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();

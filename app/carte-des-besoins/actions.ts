@@ -5,9 +5,10 @@ import { createDemand as createDemandDb } from "@/lib/supabase/queries";
 
 export async function createDemand(input: {
   church_id: string;
-  type: "intervenant" | "salle" | "ressource";
+  types: string[];
   title: string;
   description?: string;
+  importance?: string | null;
 }): Promise<{ error?: string }> {
   try {
     await createDemandDb(input);

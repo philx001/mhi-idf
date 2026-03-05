@@ -46,7 +46,7 @@ export default async function NewEventPage({
     : "/dashboard";
 
   return (
-    <main className="min-h-screen p-4 sm:p-8">
+    <main className="min-h-screen p-4 sm:p-8 pb-16">
       <div className="max-w-xl mx-auto">
         <div className="mb-6">
           <Link href={backHref} className="text-blue-600 hover:underline text-sm">

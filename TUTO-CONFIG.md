@@ -199,7 +199,7 @@ Les listes (Gestion des utilisateurs, section Membres d’une église) n’affic
 - Sur le **profil d’une église** : section « Membres de cette église » avec l’encadré « La personne n’apparaît pas dans la liste ? » qui rappelle ces étapes.
 - Sur **Gestion des utilisateurs** : un paragraphe sous le titre rappelle qu’il faut d’abord inviter pour que la personne apparaisse, puis lui attribuer un rôle et une église.
 
-### Définir un contributeur pour une église (Story 2.3)
+### Définir un membre pour une église (Story 2.3)
 
 Pour qu'un utilisateur puisse modifier le profil de son église :
 
@@ -208,9 +208,9 @@ Pour qu'un utilisateur puisse modifier le profil de son église :
 3. Dans **SQL Editor** :
    ```sql
    INSERT INTO user_roles (user_id, role, church_id)
-   VALUES ('USER_UID', 'contributeur', 'CHURCH_UID');
+   VALUES ('USER_UID', 'membre', 'CHURCH_UID');
    ```
-   (ou `UPDATE user_roles SET role = 'contributeur', church_id = 'CHURCH_UID' WHERE user_id = 'USER_UID'` si l'utilisateur a déjà un rôle)
+   (ou `UPDATE user_roles SET role = 'membre', church_id = 'CHURCH_UID' WHERE user_id = 'USER_UID'` si l'utilisateur a déjà un rôle)
 
 ---
 

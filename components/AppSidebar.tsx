@@ -14,7 +14,6 @@ import {
   Church,
   MapPin,
   Bell,
-  Megaphone,
   PlusCircle,
   Users,
   Home,
@@ -32,7 +31,6 @@ const allNavItems = [
   { href: "/churches", label: "Profils des églises", icon: Church },
   { href: "/carte-des-besoins", label: "Carte des besoins", icon: MapPin },
   { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/annonces", label: "Annonces du siège", icon: Megaphone },
   { href: "/admin/gestion-utilisateurs", label: "Gestion des utilisateurs", icon: Users },
 ];
 
@@ -46,12 +44,16 @@ export function AppSidebar() {
     getMyRoleForNav().then((r) => setRole(r.role));
   }, []);
 
-  const navItems = role === "contributeur"
-    ? allNavItems.filter(
-        (item) =>
-          item.href !== "/admin/gestion-utilisateurs" && item.href !== "/events/new"
-      )
-    : allNavItems;
+  const isResponsableEglise = role === "responsable_eglise";
+  const isResponsable = role === "responsable_siège" || isResponsableEglise;
+
+  const navItems = allNavItems.filter((item) => {
+    // Gestion des utilisateurs : responsable église uniquement (pas siège, pas membre)
+    if (item.href === "/admin/gestion-utilisateurs") return isResponsableEglise;
+    // Nouvel événement : responsable siège ou église. Ne pas afficher quand role est null (évite apparition/disparition).
+    if (item.href === "/events/new") return isResponsable;
+    return true;
+  });
 
   function isNavItemActive(item: (typeof allNavItems)[0]) {
     if (pathname === item.href) return true;

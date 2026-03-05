@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserWithTimeout } from "@/lib/supabase/auth";
-import { isSiege, getUserAndRole } from "@/lib/supabase/queries";
+import { getUserAndRole } from "@/lib/supabase/queries";
 
-export type AppRole = "responsable_siège" | "responsable_eglise" | "contributeur";
+export type AppRole = "responsable_siège" | "responsable_eglise" | "membre";
 
 export type UserWithRole = {
   id: string;
@@ -27,6 +27,8 @@ type GetUsersWithRolesOptions = {
   auth?: Awaited<ReturnType<typeof getUserAndRole>> | null;
   /** Pour la page profil église : passer l’id de l’église pour que le responsable d’église reçoive usersWithoutRole (sinon il ne les voit pas). */
   forChurchPage?: string;
+  /** Pour le planning partagé : si true (siège ou responsable église de Croissy), retourne tous les utilisateurs avec rôle. */
+  forPlanningAllUsers?: boolean;
 };
 
 export async function getUsersWithRoles(options?: GetUsersWithRolesOptions): Promise<{
@@ -62,8 +64,8 @@ export async function getUsersWithRoles(options?: GetUsersWithRolesOptions): Pro
 
     const roles = rolesResult.data ?? [];
     let filteredRoles = roles;
-    // Responsable d'église : ne voit que les membres de son église (pas les autres églises ni les rôles siège).
-    if (roleInfo.isResponsableEglise && roleInfo.churchId) {
+    // Responsable d'église : ne voit que les membres de son église (sauf si forPlanningAllUsers pour responsable Croissy).
+    if (roleInfo.isResponsableEglise && roleInfo.churchId && !options?.forPlanningAllUsers) {
       filteredRoles = roles.filter((r) => r.church_id === roleInfo.churchId || r.user_id === auth.user.id);
     }
 
@@ -119,8 +121,8 @@ export async function getUsersWithRoles(options?: GetUsersWithRolesOptions): Pro
       .map((u) => ({ id: u.id, email: u.email }))
       .sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
 
-    // Responsable d'église ne voit les « sans rôle » que sur la page profil de son église (pour les ajouter). Pas sur la Gestion utilisateurs.
-    if (roleInfo.isResponsableEglise && (!forChurchPage || forChurchPage !== roleInfo.churchId)) {
+    // Responsable d'église ne voit les « sans rôle » que sur la page profil de son église ou en Gestion utilisateurs (ou tous si Croissy via forPlanningAllUsers).
+    if (roleInfo.isResponsableEglise && !options?.forPlanningAllUsers && (!forChurchPage || forChurchPage !== roleInfo.churchId)) {
       usersWithoutRole = [];
     }
 
@@ -148,6 +150,27 @@ async function getCurrentRoleAndChurch(): Promise<{ role: AppRole; churchId: str
   return { role: auth.roleInfo.role, churchId: auth.roleInfo.churchId };
 }
 
+/** Comme getCurrentRoleAndChurch avec isCroissyResponsible (responsable église dont le nom d'église contient "croissy"). */
+async function getCurrentRoleChurchAndCroissy(): Promise<{
+  role: AppRole;
+  churchId: string | null;
+  isCroissyResponsible: boolean;
+} | null> {
+  const current = await getCurrentRoleAndChurch();
+  if (!current) return null;
+  if (current.role !== "responsable_eglise" || !current.churchId) {
+    return { ...current, isCroissyResponsible: false };
+  }
+  const supabase = await createClient();
+  const { data: church } = await supabase
+    .from("churches")
+    .select("name")
+    .eq("id", current.churchId)
+    .single();
+  const isCroissyResponsible = (church?.name ?? "").toLowerCase().includes("croissy");
+  return { ...current, isCroissyResponsible };
+}
+
 /** Pour la sidebar : savoir si l’utilisateur peut voir le lien « Gestion des utilisateurs » (siège ou responsable église uniquement). */
 export async function getMyRoleForNav(): Promise<{ role: AppRole | null }> {
   const supabase = await createClient();
@@ -161,7 +184,7 @@ export async function assignRole(
   role: AppRole,
   churchId: string | null
 ): Promise<{ error?: string }> {
-  const current = await getCurrentRoleAndChurch();
+  const current = await getCurrentRoleChurchAndCroissy();
   if (!current) return { error: "Non authentifié" };
   if (!current.role) return { error: "Accès refusé" };
   const isSiegeUser = current.role === "responsable_siège";
@@ -169,7 +192,8 @@ export async function assignRole(
   if (!isSiegeUser && !isEgliseUser) return { error: "Accès refusé" };
   if (isEgliseUser) {
     if (role === "responsable_siège") return { error: "Seul le responsable siège peut attribuer ce rôle." };
-    if (!current.churchId || churchId !== current.churchId) return { error: "Vous ne pouvez attribuer que pour votre église." };
+    if (!current.churchId) return { error: "Vous ne pouvez attribuer que pour votre église." };
+    if (!current.isCroissyResponsible && churchId !== current.churchId) return { error: "Vous ne pouvez attribuer que pour votre église." };
   }
 
   if (role !== "responsable_siège" && !churchId) {
@@ -184,30 +208,35 @@ export async function assignRole(
   const finalChurchId = role === "responsable_siège" ? null : churchId;
 
   try {
-    const { error } = await adminSupabase.from("user_roles").insert({
-      user_id: userId,
-      role,
-      church_id: finalChurchId,
-    });
+    const { error } = await adminSupabase
+      .from("user_roles")
+      .upsert(
+        { user_id: userId, role, church_id: finalChurchId },
+        { onConflict: "user_id" }
+      );
 
     if (error) throw error;
 
-    await supabase.from("audit_log").insert({
+    await adminSupabase.from("audit_log").insert({
       action: "assign_role",
       target_type: "user",
       target_id: userId,
       performed_by: currentUser.id,
       details: { role, church_id: finalChurchId },
     });
-
-    revalidatePath("/admin/gestion-utilisateurs");
-    if (finalChurchId) revalidatePath(`/churches/${finalChurchId}`);
-    return {};
   } catch (err) {
-    return {
-      error: err instanceof Error ? err.message : "Erreur lors de l'attribution du rôle",
-    };
+    const message =
+      err && typeof err === "object" && "message" in err
+        ? String((err as { message: string }).message)
+        : err instanceof Error
+          ? err.message
+          : "Erreur lors de l'attribution du rôle";
+    return { error: message };
   }
+
+  revalidatePath("/admin/gestion-utilisateurs");
+  if (finalChurchId) revalidatePath(`/churches/${finalChurchId}`);
+  return {};
 }
 
 /** Retirer un utilisateur d'une église (supprime son rôle pour cette église). */
@@ -215,12 +244,12 @@ export async function removeUserFromChurch(
   userId: string,
   churchId: string
 ): Promise<{ error?: string }> {
-  const current = await getCurrentRoleAndChurch();
+  const current = await getCurrentRoleChurchAndCroissy();
   if (!current) return { error: "Non authentifié" };
   const isSiegeUser = current.role === "responsable_siège";
   const isEgliseUser = current.role === "responsable_eglise";
   if (!isSiegeUser && !isEgliseUser) return { error: "Accès refusé" };
-  if (isEgliseUser && current.churchId !== churchId) {
+  if (isEgliseUser && !current.isCroissyResponsible && current.churchId !== churchId) {
     return { error: "Vous ne pouvez retirer que des membres de votre église." };
   }
 
@@ -251,7 +280,7 @@ export async function removeUserFromChurch(
 
   if (error) return { error: error.message };
 
-  await supabase.from("audit_log").insert({
+  await adminSupabase.from("audit_log").insert({
     action: "remove_from_church",
     target_type: "user",
     target_id: userId,
@@ -269,14 +298,15 @@ export async function updateUserRole(
   role: AppRole,
   churchId: string | null
 ): Promise<{ error?: string }> {
-  const current = await getCurrentRoleAndChurch();
+  const current = await getCurrentRoleChurchAndCroissy();
   if (!current) return { error: "Non authentifié" };
   const isSiegeUser = current.role === "responsable_siège";
   const isEgliseUser = current.role === "responsable_eglise";
   if (!isSiegeUser && !isEgliseUser) return { error: "Accès refusé" };
   if (isEgliseUser) {
     if (role === "responsable_siège") return { error: "Seul le responsable siège peut attribuer ce rôle." };
-    if (!current.churchId || churchId !== current.churchId) return { error: "Vous ne pouvez modifier que pour votre église." };
+    if (!current.churchId) return { error: "Vous ne pouvez modifier que pour votre église." };
+    if (!current.isCroissyResponsible && churchId !== current.churchId) return { error: "Vous ne pouvez modifier que pour votre église." };
   }
 
   if (role !== "responsable_siège" && !churchId) {
@@ -309,7 +339,7 @@ export async function updateUserRole(
 
     if (error) throw error;
 
-    await supabase.from("audit_log").insert({
+    await adminSupabase.from("audit_log").insert({
       action: "update_role",
       target_type: "user",
       target_id: userId,
@@ -327,9 +357,99 @@ export async function updateUserRole(
   }
 }
 
-export async function inviteUserByEmail(email: string): Promise<{ error?: string }> {
-  const siege = await isSiege();
-  if (!siege) return { error: "Accès refusé" };
+/**
+ * Crée un utilisateur avec email et mot de passe (sans envoi d'email).
+ * Option B : le responsable communique le mot de passe à l'utilisateur en personne.
+ */
+export async function createUserWithPassword(
+  email: string,
+  password: string,
+  churchId?: string | null
+): Promise<{ error?: string }> {
+  const current = await getCurrentRoleChurchAndCroissy();
+  if (!current) return { error: "Non authentifié" };
+  const isSiegeUser = current.role === "responsable_siège";
+  const isEgliseUser = current.role === "responsable_eglise";
+  if (!isSiegeUser && !isEgliseUser) return { error: "Accès refusé" };
+
+  if (password.length < 6) {
+    return { error: "Le mot de passe doit contenir au moins 6 caractères." };
+  }
+
+  if (isEgliseUser && !current.isCroissyResponsible && current.churchId) {
+    if (churchId && churchId !== current.churchId) {
+      return { error: "Vous ne pouvez créer que pour votre église." };
+    }
+    if (!churchId) churchId = current.churchId;
+  }
+
+  const adminSupabase = createAdminClient();
+
+  try {
+    const { data, error } = await adminSupabase.auth.admin.createUser({
+      email: email.trim(),
+      password,
+      email_confirm: true,
+    });
+    if (error) throw error;
+
+    if (data?.user?.id) {
+      const supabase = await createClient();
+      const currentUser = await getUserWithTimeout(supabase);
+      if (currentUser && churchId) {
+        const { error: assignErr } = await adminSupabase
+          .from("user_roles")
+          .upsert(
+            { user_id: data.user.id, role: "membre", church_id: churchId },
+            { onConflict: "user_id" }
+          );
+        if (assignErr) {
+          return { error: `Compte créé, mais erreur lors de l'attribution du rôle : ${assignErr.message}` };
+        }
+        await adminSupabase.from("audit_log").insert({
+          action: "create_user_with_password",
+          target_type: "user",
+          target_id: data.user.id,
+          performed_by: currentUser.id,
+          details: { role: "membre", church_id: churchId },
+        });
+      }
+    }
+
+    revalidatePath("/admin/gestion-utilisateurs");
+    if (churchId) revalidatePath(`/churches/${churchId}`);
+    return {};
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Erreur lors de la création du compte";
+    if (msg.includes("already been registered") || msg.includes("already exists")) {
+      return { error: "Un compte existe déjà pour cet email. Utilisez « Définir mot de passe » si la personne ne peut pas se connecter." };
+    }
+    return { error: msg };
+  }
+}
+
+/**
+ * Invite un utilisateur par email. Réservé au responsable siège, responsable Croissy et responsable d'église locale.
+ * Si churchId est fourni, le rôle "membre" est attribué automatiquement à cette église.
+ */
+export async function inviteUserByEmail(
+  email: string,
+  churchId?: string | null
+): Promise<{ error?: string }> {
+  const current = await getCurrentRoleChurchAndCroissy();
+  if (!current) return { error: "Non authentifié" };
+  const isSiegeUser = current.role === "responsable_siège";
+  const isEgliseUser = current.role === "responsable_eglise";
+  if (!isSiegeUser && !isEgliseUser) return { error: "Accès refusé" };
+
+  // Vérifier que le responsable d'église (hors Croissy) ne peut inviter que pour son église
+  if (isEgliseUser && !current.isCroissyResponsible && current.churchId) {
+    if (churchId && churchId !== current.churchId) {
+      return { error: "Vous ne pouvez inviter que pour votre église." };
+    }
+    // Si pas d'église fournie, utiliser la sienne par défaut
+    if (!churchId) churchId = current.churchId;
+  }
 
   const adminSupabase = createAdminClient();
   const baseUrl =
@@ -348,8 +468,32 @@ export async function inviteUserByEmail(email: string): Promise<{ error?: string
       await adminSupabase.auth.admin.updateUserById(data.user.id, {
         email_confirm: true,
       });
+      // Si une église est fournie, attribuer le rôle membre par défaut
+      if (churchId) {
+        const supabase = await createClient();
+        const currentUser = await getUserWithTimeout(supabase);
+        if (currentUser) {
+          const { error: assignErr } = await adminSupabase
+            .from("user_roles")
+            .upsert(
+              { user_id: data.user.id, role: "membre", church_id: churchId },
+              { onConflict: "user_id" }
+            );
+          if (assignErr) {
+            return { error: `Invitation envoyée, mais erreur lors de l'attribution du rôle : ${assignErr.message}` };
+          }
+          await adminSupabase.from("audit_log").insert({
+            action: "assign_role",
+            target_type: "user",
+            target_id: data.user.id,
+            performed_by: currentUser.id,
+            details: { role: "membre", church_id: churchId },
+          });
+        }
+      }
     }
     revalidatePath("/admin/gestion-utilisateurs");
+    if (churchId) revalidatePath(`/churches/${churchId}`);
     return {};
   } catch (err) {
     return {
@@ -358,8 +502,67 @@ export async function inviteUserByEmail(email: string): Promise<{ error?: string
   }
 }
 
+/**
+ * Définit un mot de passe temporaire pour un utilisateur (via API admin Supabase).
+ * Utile quand le flux « Mot de passe oublié » échoue (email non reçu, lien expiré par préchargement, etc.).
+ */
+export async function setUserPassword(
+  userId: string,
+  newPassword: string
+): Promise<{ error?: string }> {
+  const current = await getCurrentRoleChurchAndCroissy();
+  if (!current) return { error: "Non authentifié" };
+  const canSet = current.role === "responsable_siège" || current.role === "responsable_eglise";
+  if (!canSet) return { error: "Accès refusé" };
+
+  if (newPassword.length < 6) {
+    return { error: "Le mot de passe doit contenir au moins 6 caractères." };
+  }
+
+  const adminSupabase = createAdminClient();
+  const supabase = await createClient();
+
+  try {
+    // Si responsable d'église (hors Croissy), vérifier que l'utilisateur appartient à son église
+    if (current.role === "responsable_eglise" && current.churchId && !current.isCroissyResponsible) {
+      const { data: targetRole } = await supabase
+        .from("user_roles")
+        .select("church_id")
+        .eq("user_id", userId)
+        .single();
+      if (targetRole?.church_id && targetRole.church_id !== current.churchId) {
+        return { error: "Vous ne pouvez définir le mot de passe que pour les membres de votre église." };
+      }
+    }
+
+    const { error } = await adminSupabase.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
+
+    if (error) throw error;
+
+    const currentUser = await getUserWithTimeout(supabase);
+    if (currentUser) {
+      await adminSupabase.from("audit_log").insert({
+        action: "set_password",
+        target_type: "user",
+        target_id: userId,
+        performed_by: currentUser.id,
+        details: {},
+      });
+    }
+
+    revalidatePath("/admin/gestion-utilisateurs");
+    return {};
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Erreur lors de la définition du mot de passe",
+    };
+  }
+}
+
 export async function revokeUserAccess(userId: string): Promise<{ error?: string }> {
-  const current = await getCurrentRoleAndChurch();
+  const current = await getCurrentRoleChurchAndCroissy();
   if (!current) return { error: "Non authentifié" };
   const canRevoke = current.role === "responsable_siège" || current.role === "responsable_eglise";
   if (!canRevoke) return { error: "Accès refusé" };
@@ -372,12 +575,18 @@ export async function revokeUserAccess(userId: string): Promise<{ error?: string
   if (user.id === userId) {
     return { error: "Vous ne pouvez pas révoquer votre propre accès." };
   }
-  if (current.role === "responsable_eglise" && current.churchId) {
+  if (current.role === "responsable_eglise" && current.churchId && !current.isCroissyResponsible) {
     const { data: targetRole } = await supabase.from("user_roles").select("role, church_id").eq("user_id", userId).single();
     if (!targetRole || targetRole.church_id !== current.churchId) {
       return { error: "Vous ne pouvez révoquer que les utilisateurs de votre église." };
     }
     if (targetRole.role === "responsable_siège") {
+      return { error: "Vous ne pouvez pas révoquer un responsable siège." };
+    }
+  }
+  if (current.role === "responsable_eglise" && current.isCroissyResponsible) {
+    const { data: targetRole } = await supabase.from("user_roles").select("role").eq("user_id", userId).single();
+    if (targetRole?.role === "responsable_siège") {
       return { error: "Vous ne pouvez pas révoquer un responsable siège." };
     }
   }
@@ -389,7 +598,7 @@ export async function revokeUserAccess(userId: string): Promise<{ error?: string
 
     if (error) throw error;
 
-    await supabase.from("audit_log").insert({
+    await adminSupabase.from("audit_log").insert({
       action: "revoke_user",
       target_type: "user",
       target_id: userId,
@@ -407,13 +616,13 @@ export async function revokeUserAccess(userId: string): Promise<{ error?: string
 }
 
 export async function restoreUserAccess(userId: string): Promise<{ error?: string }> {
-  const current = await getCurrentRoleAndChurch();
+  const current = await getCurrentRoleChurchAndCroissy();
   if (!current) return { error: "Non authentifié" };
   const canRestore = current.role === "responsable_siège" || current.role === "responsable_eglise";
   if (!canRestore) return { error: "Accès refusé" };
 
   const supabase = await createClient();
-  if (current.role === "responsable_eglise" && current.churchId) {
+  if (current.role === "responsable_eglise" && current.churchId && !current.isCroissyResponsible) {
     const { data: targetRole } = await supabase.from("user_roles").select("church_id").eq("user_id", userId).single();
     if (!targetRole || targetRole.church_id !== current.churchId) {
       return { error: "Vous ne pouvez restaurer que les utilisateurs de votre église." };
@@ -432,7 +641,7 @@ export async function restoreUserAccess(userId: string): Promise<{ error?: strin
 
     if (error) throw error;
 
-    await supabase.from("audit_log").insert({
+    await adminSupabase.from("audit_log").insert({
       action: "restore_user",
       target_type: "user",
       target_id: userId,

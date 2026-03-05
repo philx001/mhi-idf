@@ -4,12 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createDemand } from "@/app/carte-des-besoins/actions";
 import type { Church } from "@/types/database";
-import type { DemandType } from "@/types/database";
+import type { DemandType, DemandImportance } from "@/types/database";
 
 const DEMAND_TYPES: { value: DemandType; label: string }[] = [
   { value: "intervenant", label: "Intervenant" },
   { value: "salle", label: "Salle" },
-  { value: "ressource", label: "Ressource" },
+  { value: "ressource", label: "Ressources Diverses" },
+  { value: "financier", label: "Financier" },
+  { value: "conseil", label: "Conseil" },
+  { value: "aide_logistique", label: "Aide Logistique" },
+  { value: "ressources_spirituelles", label: "Ressources Spirituelles" },
+  { value: "autre", label: "Autre" },
+];
+
+const IMPORTANCE_OPTIONS: { value: DemandImportance; label: string }[] = [
+  { value: "faible", label: "Faible" },
+  { value: "moyen", label: "Moyen" },
+  { value: "eleve", label: "Élevé" },
+  { value: "urgent", label: "Urgent" },
 ];
 
 interface DemandFormProps {
@@ -18,23 +30,35 @@ interface DemandFormProps {
 
 export function DemandForm({ churches }: DemandFormProps) {
   const [churchId, setChurchId] = useState(churches[0]?.id ?? "");
-  const [type, setType] = useState<DemandType>("intervenant");
+  const [types, setTypes] = useState<DemandType[]>(["intervenant"]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [importance, setImportance] = useState<DemandImportance | "">("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  function toggleType(t: DemandType) {
+    setTypes((prev) =>
+      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (types.length === 0) {
+      setError("Sélectionnez au moins un type.");
+      return;
+    }
     setLoading(true);
 
     const result = await createDemand({
       church_id: churchId,
-      type,
+      types,
       title,
       description: description || undefined,
+      importance: importance || undefined,
     });
 
     setLoading(false);
@@ -73,22 +97,48 @@ export function DemandForm({ churches }: DemandFormProps) {
       </div>
 
       <div>
+        <span className="block text-sm font-medium text-gray-700 mb-2">
+          Type(s) * (plusieurs choix possibles)
+        </span>
+        <div className="flex flex-wrap gap-3">
+          {DEMAND_TYPES.map((t) => (
+            <label
+              key={t.value}
+              className="flex items-center gap-2 cursor-pointer rounded-lg border-2 px-3 py-2 transition border-gray-200 hover:border-gray-300"
+            >
+              <input
+                type="checkbox"
+                checked={types.includes(t.value)}
+                onChange={() => toggleType(t.value)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-800">
+                {t.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <label
-          htmlFor="type"
+          htmlFor="importance"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Type *
+          Urgence / Importance
         </label>
         <select
-          id="type"
-          value={type}
-          onChange={(e) => setType(e.target.value as DemandType)}
-          required
+          id="importance"
+          value={importance}
+          onChange={(e) =>
+            setImportance((e.target.value || "") as DemandImportance | "")
+          }
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          {DEMAND_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
+          <option value="">Non précisé</option>
+          {IMPORTANCE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>

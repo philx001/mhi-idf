@@ -13,6 +13,10 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   culte: "Culte",
   etude_biblique: "Étude biblique",
   evenement: "Événement",
+  conference_semaine_royale: "Conférence Semaine Royale",
+  camp: "Camp",
+  retraite_priere: "Retraite de Prière",
+  conference_thematique: "Conférence Thématique",
   autre: "Autre",
 };
 
@@ -128,7 +132,7 @@ export function SyntheticCalendarGrid({
                         href={`/events/${ev.id}/edit`}
                         className="block text-xs truncate rounded px-1 py-0.5 hover:opacity-90"
                         style={getChurchColorStyle(ev.church_id)}
-                        title={`${ev.title} · ${ev.church?.name ?? ""} · ${EVENT_TYPE_LABELS[ev.type] ?? ev.type}${ev.event_time ? ` ${formatTime(ev.event_time)}` : ""}`}
+                        title={`${ev.title} · ${ev.church?.name ?? ""} · ${ev.type === "autre" && ev.type_other ? ev.type_other : (EVENT_TYPE_LABELS[ev.type] ?? ev.type)}${ev.event_time ? ` ${formatTime(ev.event_time)}` : ""}`}
                       >
                         {ev.is_main ? "★ " : ""}{ev.title}
                       </Link>

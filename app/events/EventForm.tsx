@@ -6,13 +6,22 @@ import { createClient } from "@/lib/supabase/client";
 import { DateInput } from "@/components/DateInput";
 import { TimeInput } from "@/components/TimeInput";
 import type { Church, Event, EventVisibility } from "@/types/database";
-import type { EventType } from "@/types/database";
+import type { EventType, EventPlaceType } from "@/types/database";
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: "culte", label: "Culte" },
   { value: "etude_biblique", label: "Étude biblique" },
   { value: "evenement", label: "Événement" },
+  { value: "conference_semaine_royale", label: "Conférence Semaine Royale" },
+  { value: "camp", label: "Camp" },
+  { value: "retraite_priere", label: "Retraite de Prière" },
+  { value: "conference_thematique", label: "Conférence Thématique" },
   { value: "autre", label: "Autre" },
+];
+
+const PLACE_TYPE_OPTIONS: { value: EventPlaceType; label: string }[] = [
+  { value: "presentiel", label: "En Présentiel" },
+  { value: "en_ligne", label: "En Ligne" },
 ];
 
 const VISIBILITY_OPTIONS: { value: EventVisibility; label: string }[] = [
@@ -43,11 +52,19 @@ export function EventForm({
   );
   const [title, setTitle] = useState(event?.title ?? "");
   const [type, setType] = useState<EventType>(event?.type ?? "evenement");
+  const [typeOther, setTypeOther] = useState(event?.type_other ?? "");
   const [eventDate, setEventDate] = useState(
     event?.event_date ?? defaultDate ?? ""
   );
   const [eventTime, setEventTime] = useState(
     event?.event_time ? String(event.event_time).slice(0, 5) : ""
+  );
+  const [eventEndDate, setEventEndDate] = useState(event?.event_end_date ?? "");
+  const [eventEndTime, setEventEndTime] = useState(
+    event?.event_end_time ? String(event.event_end_time).slice(0, 5) : ""
+  );
+  const [placeType, setPlaceType] = useState<EventPlaceType | "">(
+    event?.place_type ?? (event?.location ? "presentiel" : "")
   );
   const [location, setLocation] = useState(event?.location ?? "");
   const [description, setDescription] = useState(event?.description ?? "");
@@ -69,9 +86,13 @@ export function EventForm({
       church_id: churchId,
       title,
       type,
+      type_other: type === "autre" ? (typeOther.trim() || null) : null,
       event_date: eventDate,
       event_time: eventTime || null,
-      location: location || null,
+      event_end_date: eventEndDate || null,
+      event_end_time: eventEndTime || null,
+      place_type: placeType || null,
+      location: placeType === "presentiel" ? (location.trim() || null) : null,
       description: description || null,
       visibility,
       ...(event && userIsSiege && visibility === "shared"
@@ -148,7 +169,7 @@ export function EventForm({
           htmlFor="type"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Type *
+          Type d&apos;événement *
         </label>
         <select
           id="type"
@@ -163,6 +184,24 @@ export function EventForm({
             </option>
           ))}
         </select>
+        {type === "autre" && (
+          <div className="mt-2">
+            <label
+              htmlFor="typeOther"
+              className="block text-sm font-medium text-gray-600 mb-1"
+            >
+              Précisez le type
+            </label>
+            <input
+              id="typeOther"
+              type="text"
+              value={typeOther}
+              onChange={(e) => setTypeOther(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Ex: Réunion de prière, Formation..."
+            />
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border-2 border-blue-200 bg-blue-50/50 p-4">
@@ -217,7 +256,7 @@ export function EventForm({
             htmlFor="eventDate"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Date *
+            Date de début *
           </label>
           <DateInput
             id="eventDate"
@@ -232,7 +271,7 @@ export function EventForm({
             htmlFor="eventTime"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Heure
+            Heure de début
           </label>
           <TimeInput
             id="eventTime"
@@ -242,21 +281,80 @@ export function EventForm({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label
+            htmlFor="eventEndDate"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Date de fin
+          </label>
+          <DateInput
+            id="eventEndDate"
+            value={eventEndDate}
+            onChange={(e) => setEventEndDate(e.target.value)}
+            min={eventDate || today}
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="eventEndTime"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Heure de fin
+          </label>
+          <TimeInput
+            id="eventEndTime"
+            value={eventEndTime}
+            onChange={(e) => setEventEndTime(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div>
-        <label
-          htmlFor="location"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
+        <span className="block text-sm font-medium text-gray-700 mb-2">
           Lieu
-        </label>
-        <input
-          id="location"
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Ex: Salle principale"
-        />
+        </span>
+        <div className="flex flex-wrap gap-4 mb-3">
+          {PLACE_TYPE_OPTIONS.map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex items-center gap-2 cursor-pointer rounded-lg border-2 px-4 py-2 transition ${
+                placeType === opt.value
+                  ? "border-blue-600 bg-blue-50"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="placeType"
+                value={opt.value}
+                checked={placeType === opt.value}
+                onChange={() => setPlaceType(opt.value)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-800">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+        {placeType === "presentiel" && (
+          <div>
+            <label
+              htmlFor="location"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Lieu (adresse ou salle)
+            </label>
+            <input
+              id="location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Ex: Salle principale, 10 rue de l'Église"
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -282,13 +380,15 @@ export function EventForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? "Enregistrement..." : event ? "Enregistrer" : "Créer l'événement"}
-      </button>
+      <div className="pt-6 pb-4">
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Enregistrement..." : event ? "Enregistrer" : "Créer l'événement"}
+        </button>
+      </div>
     </form>
   );
 }

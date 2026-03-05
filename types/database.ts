@@ -1,4 +1,4 @@
-export type UserRole = "responsable_siège" | "responsable_eglise" | "contributeur";
+export type UserRole = "responsable_siège" | "responsable_eglise" | "membre";
 
 export interface Church {
   id: string;
@@ -19,7 +19,17 @@ export interface UserRoleRow {
   created_at: string;
 }
 
-export type EventType = "culte" | "etude_biblique" | "evenement" | "autre";
+export type EventType =
+  | "culte"
+  | "etude_biblique"
+  | "evenement"
+  | "autre"
+  | "conference_semaine_royale"
+  | "camp"
+  | "retraite_priere"
+  | "conference_thematique";
+
+export type EventPlaceType = "presentiel" | "en_ligne";
 
 export type EventVisibility = "private" | "shared";
 
@@ -28,9 +38,13 @@ export interface Event {
   church_id: string;
   title: string;
   type: EventType;
+  type_other: string | null;
   event_date: string;
   event_time: string | null;
+  event_end_date: string | null;
+  event_end_time: string | null;
   location: string | null;
+  place_type: EventPlaceType | null;
   description: string | null;
   visibility: EventVisibility;
   is_main: boolean;
@@ -42,14 +56,25 @@ export interface EventWithChurch extends Event {
   church: { name: string } | null;
 }
 
-export type DemandType = "intervenant" | "salle" | "ressource";
+export type DemandType =
+  | "intervenant"
+  | "salle"
+  | "ressource"
+  | "financier"
+  | "conseil"
+  | "aide_logistique"
+  | "ressources_spirituelles"
+  | "autre";
+
+export type DemandImportance = "faible" | "moyen" | "eleve" | "urgent";
 
 export interface Demand {
   id: string;
   church_id: string;
-  type: DemandType;
+  types: DemandType[];
   title: string;
   description: string | null;
+  importance: DemandImportance | null;
   created_at: string;
   updated_at: string;
 }

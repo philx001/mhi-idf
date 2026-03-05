@@ -40,7 +40,7 @@ export default async function EditEventPage({
     : churches.filter((c) => c.id === userChurchId);
 
   return (
-    <main className="min-h-screen p-4 sm:p-8">
+    <main className="min-h-screen p-4 sm:p-8 pb-16">
       <div className="max-w-xl mx-auto">
         <div className="mb-6">
           <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">

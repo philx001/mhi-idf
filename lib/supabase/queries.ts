@@ -46,7 +46,7 @@ export async function getChurchById(id: string): Promise<Church | null> {
 }
 
 export type UserRoleInfo = {
-  role: "responsable_siège" | "responsable_eglise" | "contributeur";
+  role: "responsable_siège" | "responsable_eglise" | "membre";
   isResponsableSiege: boolean;
   isResponsableEglise: boolean;
   /** Alias pour isResponsableSiege (droits niveau siège). */
@@ -74,7 +74,7 @@ async function getUserAndRoleUncached(
     console.error("[getUserAndRole] user_roles query error:", error.code, error.message);
   }
 
-  const role = (data?.role as "responsable_siège" | "responsable_eglise" | "contributeur") ?? "contributeur";
+  const role = (data?.role as "responsable_siège" | "responsable_eglise" | "membre") ?? "membre";
   const churchId = data?.church_id ?? null;
   const isResponsableSiege = role === "responsable_siège";
   const isResponsableEglise = role === "responsable_eglise";
@@ -126,18 +126,26 @@ export async function getUserChurchId(
     .eq("user_id", uid)
     .single();
 
-  if ((data?.role === "contributeur" || data?.role === "responsable_eglise") && data.church_id) {
+  if ((data?.role === "membre" || data?.role === "responsable_eglise") && data.church_id) {
     return data.church_id;
   }
   return null;
 }
 
+/** true si l'utilisateur est responsable siège ou responsable de cette église. Les membres ne peuvent pas modifier. */
 export async function canEditChurch(churchId: string): Promise<boolean> {
-  const [userIsResponsableSiege, userChurchId] = await Promise.all([
-    isSiege(),
-    getUserChurchId(),
-  ]);
-  return userIsResponsableSiege || userChurchId === churchId;
+  const client = await createClient();
+  const uid = (await getUserWithTimeout(client))?.id;
+  if (!uid) return false;
+  const { data } = await client
+    .from("user_roles")
+    .select("role, church_id")
+    .eq("user_id", uid)
+    .single();
+  return (
+    data?.role === "responsable_siège" ||
+    (data?.role === "responsable_eglise" && data?.church_id === churchId)
+  );
 }
 
 export async function createChurch(input: {
@@ -202,6 +210,7 @@ export async function getUpcomingEvents(
   return enrichEventsWithChurch((data ?? []) as EventWithChurch[], client);
 }
 
+/** true si l'utilisateur est responsable siège ou responsable de l'église de l'événement. Les membres ne peuvent pas modifier. */
 export async function canEditEvent(eventId: string): Promise<boolean> {
   const supabase = await createClient();
   const user = await getUserWithTimeout(supabase);
@@ -215,11 +224,16 @@ export async function canEditEvent(eventId: string): Promise<boolean> {
 
   if (!event) return false;
 
-  const [userIsSiege, userChurchId] = await Promise.all([
-    isSiege(),
-    getUserChurchId(),
-  ]);
-  return userIsSiege || userChurchId === event.church_id;
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role, church_id")
+    .eq("user_id", user.id)
+    .single();
+
+  return (
+    data?.role === "responsable_siège" ||
+    (data?.role === "responsable_eglise" && data?.church_id === event.church_id)
+  );
 }
 
 export async function getEventById(id: string) {
@@ -344,7 +358,7 @@ export async function getDemands(type?: string): Promise<DemandWithChurch[]> {
     .order("created_at", { ascending: false });
 
   if (type) {
-    query = query.eq("type", type);
+    query = query.contains("types", [type]);
   }
 
   const { data, error } = await query;
@@ -369,16 +383,20 @@ export async function getDemandById(id: string) {
 
 export async function createDemand(input: {
   church_id: string;
-  type: "intervenant" | "salle" | "ressource";
+  types: string[];
   title: string;
   description?: string;
+  importance?: string | null;
 }) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("demands")
     .insert({
-      ...input,
+      church_id: input.church_id,
+      types: input.types,
+      title: input.title,
       description: input.description ?? null,
+      importance: input.importance ?? null,
       updated_at: new Date().toISOString(),
     })
     .select()

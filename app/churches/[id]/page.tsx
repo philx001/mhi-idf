@@ -38,9 +38,9 @@ export default async function ChurchDetailPage({
     notFound();
   }
 
-  let members: { id: string; email: string | undefined; role: "responsable_siège" | "responsable_eglise" | "contributeur"; church_id: string | null; church_name: string | null; banned: boolean }[] = [];
+  let members: { id: string; email: string | undefined; role: "responsable_siège" | "responsable_eglise" | "membre"; church_id: string | null; church_name: string | null; banned: boolean }[] = [];
   let usersWithoutRole: { id: string; email: string | undefined }[] = [];
-  let currentUserRole: "responsable_siège" | "responsable_eglise" | "contributeur" | null = null;
+  let currentUserRole: "responsable_siège" | "responsable_eglise" | "membre" | null = null;
   let currentUserChurchId: string | null = null;
   let churchesList: { id: string; name: string }[] = [];
 
@@ -88,7 +88,7 @@ export default async function ChurchDetailPage({
             {userCanEdit && (
               <Link
                 href={`/churches/${church.id}/edit`}
-                className="text-sm text-blue-600 hover:underline"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
               >
                 Modifier le profil
               </Link>

@@ -13,6 +13,10 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   culte: "Culte",
   etude_biblique: "Étude biblique",
   evenement: "Événement",
+  conference_semaine_royale: "Conférence Semaine Royale",
+  camp: "Camp",
+  retraite_priere: "Retraite de Prière",
+  conference_thematique: "Conférence Thématique",
   autre: "Autre",
 };
 
@@ -255,7 +259,7 @@ export default async function CalendarPage({
                         <p className="text-sm text-gray-500 mt-1">📍 {event.location}</p>
                       )}
                       <span className="inline-block mt-2 text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded">
-                        {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                        {event.type === "autre" && event.type_other ? event.type_other : (EVENT_TYPE_LABELS[event.type] ?? event.type)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -350,7 +354,7 @@ export default async function CalendarPage({
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         <span className="inline-block text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded">
-                          {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                          {event.type === "autre" && event.type_other ? event.type_other : (EVENT_TYPE_LABELS[event.type] ?? event.type)}
                         </span>
                         {event.is_main && (
                           <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded">

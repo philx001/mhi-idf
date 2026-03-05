@@ -44,6 +44,8 @@ const ATTENDANCE_LABELS: Record<string, string> = {
   autre: "Autre",
 };
 
+const VISIBLE_SESSIONS_INITIAL = 5;
+
 /** Génère les créneaux horaires entre start et end (par pas d'1h). Gère le passage à minuit. */
 function getSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
@@ -101,6 +103,7 @@ export function PlanningContent({
 }: Props) {
   const router = useRouter();
   const [showAddSession, setShowAddSession] = useState(false);
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const [addSignupFor, setAddSignupFor] = useState<{
     sessionId: string;
     slotTime: string;
@@ -337,8 +340,9 @@ export function PlanningContent({
           {canCreateSession && "Cliquez sur « Nouvelle session » pour en créer une."}
         </p>
       ) : (
-        <ul className="space-y-8">
-          {sessions.map((session) => {
+        <>
+          <ul className="space-y-8">
+          {(showAllSessions ? sessions : sessions.slice(0, VISIBLE_SESSIONS_INITIAL)).map((session) => {
             const slots = getSlots(session.start_time, session.end_time);
             const programType = session.program_type ?? "prière";
             const attendanceType = session.attendance_type ?? "presentiel";
@@ -459,7 +463,29 @@ export function PlanningContent({
               </li>
             );
           })}
-        </ul>
+          </ul>
+          {sessions.length > VISIBLE_SESSIONS_INITIAL && (
+            <div className="mt-4">
+              {showAllSessions ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSessions(false)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Replier (afficher seulement les {VISIBLE_SESSIONS_INITIAL} derniers)
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSessions(true)}
+                  className="px-4 py-2 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-medium"
+                >
+                  Afficher les {sessions.length - VISIBLE_SESSIONS_INITIAL} autres programmes
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

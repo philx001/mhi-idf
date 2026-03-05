@@ -44,7 +44,7 @@ export function NotificationsList({
       setMessage({ type: "err", text: result.error });
     } else {
       setShowForm(false);
-      setMessage({ type: "ok", text: "Notification créée. En cas d'urgence, un email a été envoyé aux responsables d'églises." });
+      setMessage({ type: "ok", text: "Notification créée." });
       router.refresh();
     }
   };

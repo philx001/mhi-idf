@@ -14,7 +14,19 @@ import { ProposalForm } from "./ProposalForm";
 const DEMAND_TYPE_LABELS: Record<string, string> = {
   intervenant: "Intervenant",
   salle: "Salle",
-  ressource: "Ressource",
+  ressource: "Ressources Diverses",
+  financier: "Financier",
+  conseil: "Conseil",
+  aide_logistique: "Aide Logistique",
+  ressources_spirituelles: "Ressources Spirituelles",
+  autre: "Autre",
+};
+
+const DEMAND_IMPORTANCE_LABELS: Record<string, string> = {
+  faible: "Faible",
+  moyen: "Moyen",
+  eleve: "Élevé",
+  urgent: "Urgent",
 };
 
 function formatDate(dateStr: string) {
@@ -75,9 +87,21 @@ export default async function DemandeDetailPage({
         </div>
 
         <article className="border border-gray-200 rounded-lg p-6 bg-white mb-6">
-          <span className="inline-block text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded mb-2">
-            {DEMAND_TYPE_LABELS[demand.type] ?? demand.type}
-          </span>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {(demand.types ?? []).map((t: string) => (
+              <span
+                key={t}
+                className="inline-block text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded"
+              >
+                {DEMAND_TYPE_LABELS[t] ?? t}
+              </span>
+            ))}
+            {demand.importance && (
+              <span className="inline-block text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                {DEMAND_IMPORTANCE_LABELS[demand.importance] ?? demand.importance}
+              </span>
+            )}
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {demand.title}
           </h1>

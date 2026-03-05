@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Upload, X } from "lucide-react";
+
+/** Doit correspondre exactement au nom du bucket dans Supabase > Storage. */
+const AVATAR_BUCKET = "avatars";
+const MAX_AVATAR_SIZE_MB = 2;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 type UserMeta = Record<string, unknown>;
 
@@ -27,11 +32,17 @@ export function ProfilClient({ user: initialUser }: Props) {
   const [full_name, setFull_name] = useState(
     (initialUser.user_metadata?.full_name as string) ?? ""
   );
+  const [email, setEmail] = useState(initialUser.email ?? "");
+  const [phone, setPhone] = useState(
+    (initialUser.user_metadata?.phone as string) ?? ""
+  );
   const [avatar_url, setAvatar_url] = useState(
     (initialUser.user_metadata?.avatar_url as string) ?? ""
   );
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,14 +51,81 @@ export function ProfilClient({ user: initialUser }: Props) {
 
   const supabase = createClient();
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setProfileMessage({ type: "error", text: "Format accepté : JPEG, PNG, WebP ou GIF." });
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
+      setProfileMessage({ type: "error", text: `Taille max : ${MAX_AVATAR_SIZE_MB} Mo.` });
+      return;
+    }
+    setProfileMessage(null);
+    setAvatarUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${initialUser.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .upload(path, file, { upsert: true });
+    setAvatarUploading(false);
+    if (uploadError) {
+      setProfileMessage({ type: "error", text: uploadError.message });
+      return;
+    }
+    const { data: urlData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    setAvatar_url(urlData.publicUrl);
+    setProfileMessage({ type: "ok", text: "Photo mise à jour. Enregistrez le profil pour la conserver." });
+    e.target.value = "";
+  }
+
+  async function handleRemoveAvatar() {
+    if (!avatar_url) return;
+    const path = avatar_url.split("/").slice(-2).join("/");
+    if (!path.startsWith(initialUser.id + "/")) return;
+    setAvatarUploading(true);
+    await supabase.storage.from(AVATAR_BUCKET).remove([path]);
+    setAvatarUploading(false);
+    setAvatar_url("");
+    setProfileMessage({ type: "ok", text: "Photo supprimée. Enregistrez le profil." });
+  }
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setProfileMessage(null);
+    const fn = first_name.trim();
+    const ln = full_name.trim();
+    const em = email.trim();
+    const ph = phone.trim();
+    if (!fn) {
+      setProfileMessage({ type: "error", text: "Le prénom est obligatoire." });
+      return;
+    }
+    if (!ln) {
+      setProfileMessage({ type: "error", text: "Le nom complet est obligatoire." });
+      return;
+    }
+    if (!em) {
+      setProfileMessage({ type: "error", text: "L’email est obligatoire." });
+      return;
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(em)) {
+      setProfileMessage({ type: "error", text: "Adresse email invalide." });
+      return;
+    }
+    if (!ph) {
+      setProfileMessage({ type: "error", text: "Le numéro de téléphone est obligatoire." });
+      return;
+    }
     setProfileSaving(true);
     const { error } = await supabase.auth.updateUser({
+      email: em,
       data: {
-        first_name: first_name.trim() || undefined,
-        full_name: full_name.trim() || undefined,
+        first_name: fn,
+        full_name: ln,
+        phone: ph,
         avatar_url: avatar_url.trim() || undefined,
       },
     });
@@ -89,58 +167,113 @@ export function ProfilClient({ user: initialUser }: Props) {
           <CardTitle className="text-lg">Informations personnelles</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Email du compte : <strong>{initialUser.email}</strong> (non modifiable ici)
-          </p>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div>
               <label htmlFor="first_name" className="block text-sm font-medium text-foreground mb-1">
-                Prénom
+                Prénom <span className="text-destructive">*</span>
               </label>
               <input
                 id="first_name"
                 type="text"
                 value={first_name}
                 onChange={(e) => setFirst_name(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring"
                 placeholder="Votre prénom"
               />
             </div>
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-foreground mb-1">
-                Nom complet
+                Nom complet <span className="text-destructive">*</span>
               </label>
               <input
                 id="full_name"
                 type="text"
                 value={full_name}
                 onChange={(e) => setFull_name(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring"
                 placeholder="Nom et prénom"
               />
             </div>
             <div>
-              <label htmlFor="avatar_url" className="block text-sm font-medium text-foreground mb-1">
-                Photo (URL)
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+                Email <span className="text-destructive">*</span>
               </label>
               <input
-                id="avatar_url"
-                type="url"
-                value={avatar_url}
-                onChange={(e) => setAvatar_url(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
                 className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring"
-                placeholder="https://..."
+                placeholder="vous@exemple.fr"
               />
-              {avatar_url && (
-                <div className="mt-2">
-                  <img
-                    src={avatar_url}
-                    alt="Avatar"
-                    className="h-16 w-16 rounded-full object-cover border border-border"
-                    onError={(e) => (e.currentTarget.style.display = "none")}
-                  />
-                </div>
-              )}
+            </div>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1">
+                Téléphone <span className="text-destructive">*</span>
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                autoComplete="tel"
+                className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring"
+                placeholder="06 12 34 56 78"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Photo
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ALLOWED_TYPES.join(",")}
+                onChange={handleAvatarUpload}
+                className="hidden"
+                aria-hidden
+              />
+              <div className="flex items-center gap-4">
+                {avatar_url && (
+                  <div className="relative">
+                    <img
+                      src={avatar_url}
+                      alt="Avatar"
+                      className="h-20 w-20 rounded-full object-cover border border-border"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      className="absolute -top-1 -right-1 rounded-full bg-destructive text-destructive-foreground p-1 hover:opacity-90"
+                      title="Supprimer la photo"
+                      aria-label="Supprimer la photo"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  disabled={avatarUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg border border-input bg-background text-foreground hover:bg-muted transition",
+                    avatarUploading && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Upload className="h-4 w-4" />
+                  {avatarUploading ? "Upload..." : avatar_url ? "Changer la photo" : "Téléverser une photo"}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                JPEG, PNG, WebP ou GIF — max {MAX_AVATAR_SIZE_MB} Mo
+              </p>
             </div>
             {profileMessage && (
               <p
@@ -154,7 +287,13 @@ export function ProfilClient({ user: initialUser }: Props) {
             )}
             <button
               type="submit"
-              disabled={profileSaving}
+              disabled={
+                profileSaving ||
+                !first_name.trim() ||
+                !full_name.trim() ||
+                !email.trim() ||
+                !phone.trim()
+              }
               className={cn(buttonVariants())}
             >
               {profileSaving ? "Enregistrement..." : "Enregistrer le profil"}

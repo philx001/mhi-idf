@@ -7,6 +7,10 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   culte: "Culte",
   etude_biblique: "Étude biblique",
   evenement: "Événement",
+  conference_semaine_royale: "Conférence Semaine Royale",
+  camp: "Camp",
+  retraite_priere: "Retraite de Prière",
+  conference_thematique: "Conférence Thématique",
   autre: "Autre",
 };
 
@@ -127,7 +131,7 @@ export function ChurchCalendar({
                               ? "bg-blue-50 text-blue-800 hover:bg-blue-100 border-l-2 border-blue-400"
                               : "bg-gray-200 text-gray-800 hover:bg-gray-300 border-l-2 border-gray-500"
                           }`}
-                          title={`${ev.title} · ${isShared ? "Partagé (réseau)" : "Privé (mon église)"} · ${EVENT_TYPE_LABELS[ev.type] ?? ev.type}${ev.event_time ? ` ${formatTime(ev.event_time)}` : ""}`}
+                          title={`${ev.title} · ${isShared ? "Partagé (réseau)" : "Privé (mon église)"} · ${ev.type === "autre" && ev.type_other ? ev.type_other : (EVENT_TYPE_LABELS[ev.type] ?? ev.type)}${ev.event_time ? ` ${formatTime(ev.event_time)}` : ""}`}
                         >
                           {ev.title}
                         </Link>

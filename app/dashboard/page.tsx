@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 import {
   getUpcomingEvents,
-  getAnnouncements,
   getNotifications,
   getUserAndRole,
 } from "@/lib/supabase/queries";
@@ -20,6 +19,10 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   culte: "Culte",
   etude_biblique: "Étude biblique",
   evenement: "Événement",
+  conference_semaine_royale: "Conférence Semaine Royale",
+  camp: "Camp",
+  retraite_priere: "Retraite de Prière",
+  conference_thematique: "Conférence Thématique",
   autre: "Autre",
 };
 
@@ -89,18 +92,16 @@ export default async function DashboardPage() {
       ? "Responsable siège"
       : roleInfo.role === "responsable_eglise"
       ? "Responsable église"
-      : roleInfo.role === "contributeur"
-      ? "Contributeur"
+      : roleInfo.role === "membre"
+      ? "Membre"
       : "Non défini";
 
   let events: Awaited<ReturnType<typeof getUpcomingEvents>> = [];
-  let announcements: Awaited<ReturnType<typeof getAnnouncements>> = [];
   let notifications: Awaited<ReturnType<typeof getNotifications>> = [];
   let dataError: string | null = null;
   try {
-    [events, announcements, notifications] = await Promise.all([
+    [events, notifications] = await Promise.all([
       getUpcomingEvents(10),
-      getAnnouncements(3),
       getNotifications({ limit: 5 }),
     ]);
   } catch (err) {
@@ -213,7 +214,7 @@ export default async function DashboardPage() {
                               {event.church && ` · ${event.church.name}`}
                             </p>
                             <Badge variant="secondary" className="mt-2">
-                              {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                              {event.type === "autre" && event.type_other ? event.type_other : (EVENT_TYPE_LABELS[event.type] ?? event.type)}
                             </Badge>
                             <EventActions
                               eventId={event.id}
@@ -278,42 +279,12 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {announcements.length > 0 && (
-          <Card className="shadow-md border-border bg-white/95 backdrop-blur-sm">
-            <CardHeader className="border-b border-border/50 bg-primary/5 rounded-t-lg">
-              <CardTitle className="text-primary">Dernières annonces</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <ul className="space-y-2">
-                {announcements.map((a) => (
-                  <li key={a.id}>
-                    <Link href={`/annonces/${a.id}`} className="block">
-                      <Card className="bg-white/85 transition-all duration-200 hover:bg-white hover:shadow-md hover:border-primary/20">
-                        <CardContent className="p-4">
-                          <p className="font-medium text-foreground">{a.title}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {new Date(a.created_at).toLocaleDateString("fr-FR", {
-                              day: "numeric",
-                              month: "short",
-                            })}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/annonces" className={cn(buttonVariants({ variant: "link" }), "p-0 h-auto text-primary")}>
-                Voir toutes les annonces →
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
         <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-          <Link href="/events/new" className={cn(buttonVariants({ variant: "outline" }))}>
-            + Nouvel événement
-          </Link>
+          {(roleInfo.isSiege || roleInfo.isResponsableEglise) && (
+            <Link href="/events/new" className={cn(buttonVariants({ variant: "outline" }))}>
+              + Nouvel événement
+            </Link>
+          )}
           <Link href="/calendar" className={cn(buttonVariants({ variant: "outline" }))}>
             Voir le calendrier
           </Link>
@@ -334,10 +305,7 @@ export default async function DashboardPage() {
           <Link href="/notifications" className={cn(buttonVariants({ variant: "outline" }))}>
             Notifications
           </Link>
-          <Link href="/annonces" className={cn(buttonVariants({ variant: "outline" }))}>
-            Annonces du siège
-          </Link>
-          {(userIsSiege || roleInfo.isResponsableEglise) && (
+          {roleInfo.isResponsableEglise && (
             <Link href="/admin/gestion-utilisateurs" className={cn(buttonVariants({ variant: "outline" }))}>
               Gestion des utilisateurs
             </Link>

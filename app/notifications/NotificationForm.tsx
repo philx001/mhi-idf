@@ -7,7 +7,6 @@ const IMPORTANCE_OPTIONS: { value: NotificationImportance; label: string }[] = [
   { value: "info", label: "Info (faible)" },
   { value: "normal", label: "Normal" },
   { value: "important", label: "Important" },
-  { value: "urgente", label: "Urgent (envoi email aux responsables d'églises)" },
 ];
 
 type Props = {
