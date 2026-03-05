@@ -28,7 +28,6 @@ const allNavItems = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/profil", label: "Mon profil", icon: UserCircle },
   { href: "/annuaire", label: "Annuaire", icon: BookUser },
-  { href: "/journal-activite", label: "Journal d'activité", icon: ScrollText },
   { href: "/events/new", label: "Nouvel événement", icon: PlusCircle },
   { href: "/calendar", label: "Calendrier", icon: Calendar },
   { href: "/planning", label: "Planning partagé", icon: CalendarDays },
@@ -36,6 +35,7 @@ const allNavItems = [
   { href: "/carte-des-besoins", label: "Carte des besoins", icon: MapPin },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/gestion-utilisateurs", label: "Gestion des utilisateurs", icon: Users },
+  { href: "/journal-activite", label: "Journal d'activité", icon: ScrollText },
 ];
 
 export function AppSidebar() {
@@ -48,15 +48,16 @@ export function AppSidebar() {
     getMyRoleForNav().then((r) => setRole(r.role));
   }, []);
 
-  const isResponsableSiege = role === "responsable_siège";
+  // admin ou responsable_siège (avant migration 020) = droits administrateur
+  const isAdmin = role === "admin" || role === "responsable_siège";
   const isResponsableEglise = role === "responsable_eglise";
-  const isResponsable = isResponsableSiege || isResponsableEglise;
+  const isResponsable = isAdmin || isResponsableEglise;
 
   const navItems = allNavItems.filter((item) => {
-    // Journal d'activité : responsable siège uniquement (pas responsable église, pas Croissy)
-    if (item.href === "/journal-activite") return isResponsableSiege;
-    // Gestion des utilisateurs : responsable église uniquement (pas siège, pas membre)
-    if (item.href === "/admin/gestion-utilisateurs") return isResponsableEglise;
+    // Journal d'activité : admin uniquement (pas responsable église, pas Croissy)
+    if (item.href === "/journal-activite") return isAdmin;
+    // Gestion des utilisateurs : admin ou responsable église
+    if (item.href === "/admin/gestion-utilisateurs") return isResponsable;
     // Nouvel événement : responsable siège ou église. Ne pas afficher quand role est null (évite apparition/disparition).
     if (item.href === "/events/new") return isResponsable;
     return true;

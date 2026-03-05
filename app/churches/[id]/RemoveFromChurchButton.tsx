@@ -39,15 +39,29 @@ export function RemoveFromChurchButton({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 shrink-0">
       <button
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className={`text-xs ${confirm ? "text-red-600 font-medium" : "text-gray-500 hover:text-red-600"} disabled:opacity-50`}
+        className={`text-sm px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
+          confirm
+            ? "bg-red-600 text-white hover:bg-red-700"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
       >
-        {loading ? "..." : confirm ? "Cliquer pour confirmer" : "Retirer de l'église"}
+        {loading ? "..." : confirm ? "Confirmer la suppression" : "Retirer de l'église"}
       </button>
+      {confirm && (
+        <button
+          type="button"
+          onClick={() => { setConfirm(false); setError(null); }}
+          disabled={loading}
+          className="text-sm px-3 py-1.5 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+        >
+          Annuler
+        </button>
+      )}
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   );

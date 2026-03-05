@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getUserAndRole } from "@/lib/supabase/queries";
-import { getLoginActivity } from "@/lib/supabase/queries";
+import { getUserAndRole, getLoginActivity } from "@/lib/supabase/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata = {
+  title: "Journal d'activité",
+  description: "Historique des connexions à l'application. Réservé à l'administrateur.",
+};
 
 export default async function JournalActivitePage() {
   const supabase = await createClient();
@@ -13,7 +17,9 @@ export default async function JournalActivitePage() {
     redirect("/login");
   }
 
-  if (auth.roleInfo.role !== "responsable_siège") {
+  // admin ou responsable_siège (avant migration 020) = accès autorisé
+  const isAdmin = auth.roleInfo.role === "admin" || auth.roleInfo.role === "responsable_siège";
+  if (!isAdmin) {
     redirect("/dashboard");
   }
 
@@ -82,7 +88,10 @@ export default async function JournalActivitePage() {
                         <td className="py-2 px-2">
                           {e.email || "—"}
                         </td>
-                        <td className="py-2 px-2 text-muted-foreground hidden sm:table-cell">
+                        <td
+                          className="py-2 px-2 text-muted-foreground hidden sm:table-cell"
+                          title={e.user_agent || undefined}
+                        >
                           {e.ip_address || "—"}
                         </td>
                       </tr>

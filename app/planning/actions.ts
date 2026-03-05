@@ -168,7 +168,7 @@ export async function createPrayerSession(input: {
   const supabase = await createClient();
   const auth = await getUserAndRole(supabase);
   if (!auth) return { error: "Non authentifié" };
-  if (!auth.roleInfo.isSiege) return { error: "Seul le responsable siège peut créer une session." };
+  if (!auth.roleInfo.isSiege) return { error: "Seul l'administrateur peut créer une session." };
 
   const { error } = await supabase.from("prayer_sessions").insert({
     session_date: input.session_date,
@@ -190,7 +190,7 @@ export async function deletePrayerSession(sessionId: string): Promise<{ error?: 
   const supabase = await createClient();
   const auth = await getUserAndRole(supabase);
   if (!auth) return { error: "Non authentifié" };
-  if (!auth.roleInfo.isSiege) return { error: "Seul le responsable siège peut supprimer une session." };
+  if (!auth.roleInfo.isSiege) return { error: "Seul l'administrateur peut supprimer une session." };
 
   const { error } = await supabase
     .from("prayer_sessions")

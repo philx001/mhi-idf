@@ -5,6 +5,7 @@ import { getUserAndRole } from "@/lib/supabase/queries";
 import { getChurches } from "@/lib/supabase/queries";
 import { getUsersWithRoles } from "../actions";
 import { RevokeUserButton } from "./RevokeUserButton";
+import { RemoveFromChurchButton } from "@/app/churches/[id]/RemoveFromChurchButton";
 import { RoleForm } from "./RoleForm";
 import { InviteForm } from "./InviteForm";
 import { SetPasswordButton } from "./SetPasswordButton";
@@ -16,7 +17,7 @@ export default async function GestionUtilisateursPage() {
   if (!auth) {
     redirect("/login");
   }
-  if (!auth.roleInfo.isResponsableEglise) {
+  if (!auth.roleInfo.isResponsableEglise && !auth.roleInfo.isSiege) {
     redirect("/dashboard");
   }
 
@@ -25,14 +26,15 @@ export default async function GestionUtilisateursPage() {
     auth.roleInfo.churchId &&
     churches.find((c) => c.id === auth.roleInfo.churchId)?.name?.toLowerCase().includes("croissy")
   );
+  const canManageAllChurches = auth.roleInfo.isSiege || isCroissyResponsible;
 
   const { users, usersWithoutRole, currentUserRole, currentUserChurchId, error } = await getUsersWithRoles({
     auth,
-    forPlanningAllUsers: isCroissyResponsible,
-    forChurchPage: isCroissyResponsible ? undefined : (auth.roleInfo.churchId ?? undefined),
+    forPlanningAllUsers: canManageAllChurches,
+    forChurchPage: canManageAllChurches ? undefined : (auth.roleInfo.churchId ?? undefined),
   });
 
-  const churchList = isCroissyResponsible
+  const churchList = canManageAllChurches
     ? churches.map((c) => ({ id: c.id, name: c.name }))
     : churches.filter((c) => c.id === auth.roleInfo.churchId).map((c) => ({ id: c.id, name: c.name }));
 
@@ -53,24 +55,26 @@ export default async function GestionUtilisateursPage() {
           l&apos;accès au réseau.
         </p>
         <p className="hidden">
-          Pour qu’une personne (ex. un contact d’église) apparaisse dans les listes ci-dessous, elle doit d’abord avoir un compte (l&apos;invitation par email est réservée au responsable siège). Une fois le compte créé, la personne figurera dans « Utilisateurs sans rôle » et vous pourrez lui attribuer un rôle et une église (depuis ici ou depuis le profil de l’église, section Membres).
+          Pour qu’une personne (ex. un contact d’église) apparaisse dans les listes ci-dessous, elle doit d’abord avoir un compte (l&apos;invitation par email est réservée à l&apos;administrateur). Une fois le compte créé, la personne figurera dans « Utilisateurs sans rôle » et vous pourrez lui attribuer un rôle et une église (depuis ici ou depuis le profil de l’église, section Membres).
         </p>
         <p className="text-sm text-gray-500 mb-4">
           Invitez des membres par email (lien valable 24 h). Une fois le compte créé, attribuez un rôle et une église si besoin (depuis ici ou depuis le profil de l&apos;église, section Membres).
         </p>
         <div className="mb-6">
           <InviteForm
-            defaultChurchId={!isCroissyResponsible && auth.roleInfo.churchId ? auth.roleInfo.churchId : null}
-            churches={isCroissyResponsible ? churchList : []}
+            defaultChurchId={!canManageAllChurches && auth.roleInfo.churchId ? auth.roleInfo.churchId : null}
+            churches={canManageAllChurches ? churchList : []}
           />
         </div>
-        {isCroissyResponsible ? (
+        {canManageAllChurches ? (
           <p className="text-sm text-blue-800 bg-blue-50 px-4 py-2 rounded-lg mb-4">
-            En tant que responsable de l&apos;église de Croissy, vous pouvez voir et modifier <strong>tous les membres</strong> du réseau, quelle que soit leur église.
+            {auth.roleInfo.isSiege
+              ? "En tant qu&apos;administrateur, vous pouvez voir et modifier tous les membres du réseau."
+              : "En tant que responsable de l&apos;église de Croissy, vous pouvez voir et modifier tous les membres du réseau, quelle que soit leur église."}
           </p>
         ) : (
           <p className="text-sm text-blue-800 bg-blue-50 px-4 py-2 rounded-lg mb-4">
-            Vous ne voyez que les membres de <strong>votre église</strong>. Vous ne pouvez pas voir ni modifier les membres des autres églises.
+            Vous ne voyez que les membres de <strong>votre église</strong>. Vous pouvez bloquer temporairement ou supprimer un membre.
           </p>
         )}
 
@@ -83,7 +87,7 @@ export default async function GestionUtilisateursPage() {
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">
             Utilisateurs avec rôle
-            {!isCroissyResponsible && " (membres de votre église)"}
+            {!canManageAllChurches && " (membres de votre église)"}
           </h2>
           {users.length === 0 && !error ? (
             <p className="text-gray-600 text-sm">Aucun utilisateur avec rôle.</p>
@@ -100,7 +104,7 @@ export default async function GestionUtilisateursPage() {
                         {u.email ?? "(sans email)"}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {u.role === "responsable_siège" ? "Responsable siège" : u.role === "responsable_eglise" ? "Responsable église" : "Contributeur"}
+                        {u.role === "admin" ? "Admin" : u.role === "responsable_eglise" ? "Responsable église" : "Contributeur"}
                         {u.church_name && ` · ${u.church_name}`}
                       </p>
                       {u.banned && (
@@ -117,9 +121,18 @@ export default async function GestionUtilisateursPage() {
                         banned={u.banned}
                         currentUserId={auth.user.id}
                       />
+                      {u.church_id &&
+                        u.role !== "admin" &&
+                        auth.user.id !== u.id && (
+                          <RemoveFromChurchButton
+                            userId={u.id}
+                            churchId={u.church_id}
+                            email={u.email ?? "utilisateur"}
+                          />
+                        )}
                     </div>
                   </div>
-                  {/* Responsable d'église ne peut pas modifier un responsable siège (jamais dans la liste). Pour son église il peut modifier membre et responsable église. */}
+                  {/* Responsable d'église ne peut pas modifier un administrateur (jamais dans la liste). Pour son église il peut modifier membre et responsable église. */}
                   <RoleForm
                     mode="edit"
                     userId={u.id}
@@ -140,7 +153,7 @@ export default async function GestionUtilisateursPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-3">
             Utilisateurs sans rôle
           </h2>
-          {isCroissyResponsible ? (
+          {canManageAllChurches ? (
             <>
               <p className="text-gray-600 text-sm mb-3">
                 Utilisateurs inscrits n&apos;ayant pas encore de rôle. Attribuez-leur un rôle (Responsable église ou Contributeur) et une église pour qu&apos;ils accèdent à l&apos;application.
@@ -159,6 +172,12 @@ export default async function GestionUtilisateursPage() {
                       </p>
                       <div className="flex flex-wrap items-center gap-3">
                         <SetPasswordButton userId={u.id} email={u.email ?? "utilisateur"} />
+                        <RevokeUserButton
+                          userId={u.id}
+                          email={u.email ?? "utilisateur"}
+                          banned={false}
+                          currentUserId={auth.user.id}
+                        />
                         <RoleForm
                           mode="assign"
                           userId={u.id}

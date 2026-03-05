@@ -47,7 +47,7 @@ export async function getChurchById(id: string): Promise<Church | null> {
 }
 
 export type UserRoleInfo = {
-  role: "responsable_siège" | "responsable_eglise" | "membre";
+  role: "admin" | "responsable_eglise" | "membre";
   isResponsableSiege: boolean;
   isResponsableEglise: boolean;
   /** Alias pour isResponsableSiege (droits niveau siège). */
@@ -75,18 +75,18 @@ async function getUserAndRoleUncached(
     console.error("[getUserAndRole] user_roles query error:", error.code, error.message);
   }
 
-  const role = (data?.role as "responsable_siège" | "responsable_eglise" | "membre") ?? "membre";
+  const role = (data?.role as "admin" | "responsable_eglise" | "membre") ?? "membre";
   const churchId = data?.church_id ?? null;
-  const isResponsableSiege = role === "responsable_siège";
+  const isAdmin = role === "admin";
   const isResponsableEglise = role === "responsable_eglise";
 
   return {
     user,
     roleInfo: {
       role,
-      isResponsableSiege,
+      isResponsableSiege: isAdmin,
       isResponsableEglise,
-      isSiege: isResponsableSiege,
+      isSiege: isAdmin,
       churchId,
     },
   };
@@ -109,7 +109,7 @@ export async function isSiege(
     .eq("user_id", uid)
     .single();
 
-  return data?.role === "responsable_siège";
+  return data?.role === "admin";
 }
 
 export async function getUserChurchId(
@@ -133,7 +133,7 @@ export async function getUserChurchId(
   return null;
 }
 
-/** true si l'utilisateur est responsable siège ou responsable de cette église. Les membres ne peuvent pas modifier. */
+/** true si l'utilisateur est admin ou responsable de cette église. Les membres ne peuvent pas modifier. */
 export async function canEditChurch(churchId: string): Promise<boolean> {
   const client = await createClient();
   const uid = (await getUserWithTimeout(client))?.id;
@@ -144,7 +144,7 @@ export async function canEditChurch(churchId: string): Promise<boolean> {
     .eq("user_id", uid)
     .single();
   return (
-    data?.role === "responsable_siège" ||
+    data?.role === "admin" ||
     (data?.role === "responsable_eglise" && data?.church_id === churchId)
   );
 }
@@ -211,7 +211,7 @@ export async function getUpcomingEvents(
   return enrichEventsWithChurch((data ?? []) as EventWithChurch[], client);
 }
 
-/** true si l'utilisateur est responsable siège ou responsable de l'église de l'événement. Les membres ne peuvent pas modifier. */
+/** true si l'utilisateur est admin ou responsable de l'église de l'événement. Les membres ne peuvent pas modifier. */
 export async function canEditEvent(eventId: string): Promise<boolean> {
   const supabase = await createClient();
   const user = await getUserWithTimeout(supabase);
@@ -232,7 +232,7 @@ export async function canEditEvent(eventId: string): Promise<boolean> {
     .single();
 
   return (
-    data?.role === "responsable_siège" ||
+    data?.role === "admin" ||
     (data?.role === "responsable_eglise" && data?.church_id === event.church_id)
   );
 }
@@ -681,7 +681,7 @@ export type LoginActivityEntry = {
 
 /**
  * Liste des connexions pour le journal d'activité.
- * Réservé au responsable siège. Utilise l'API admin.
+ * Réservé à l'administrateur. Utilise l'API admin.
  */
 export async function getLoginActivity(limit = 200): Promise<LoginActivityEntry[]> {
   const admin = createAdminClient();

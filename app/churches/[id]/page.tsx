@@ -38,9 +38,9 @@ export default async function ChurchDetailPage({
     notFound();
   }
 
-  let members: { id: string; email: string | undefined; role: "responsable_siège" | "responsable_eglise" | "membre"; church_id: string | null; church_name: string | null; banned: boolean }[] = [];
+  let members: { id: string; email: string | undefined; role: "admin" | "responsable_eglise" | "membre"; church_id: string | null; church_name: string | null; banned: boolean }[] = [];
   let usersWithoutRole: { id: string; email: string | undefined }[] = [];
-  let currentUserRole: "responsable_siège" | "responsable_eglise" | "membre" | null = null;
+  let currentUserRole: "admin" | "responsable_eglise" | "membre" | null = null;
   let currentUserChurchId: string | null = null;
   let churchesList: { id: string; name: string }[] = [];
 
@@ -178,6 +178,7 @@ export default async function ChurchDetailPage({
               churches={churchesList}
               currentUserRole={currentUserRole}
               currentUserChurchId={currentUserChurchId}
+              currentUserId={user.id}
             />
           )}
         </article>

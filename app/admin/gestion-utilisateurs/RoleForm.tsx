@@ -18,7 +18,7 @@ interface RoleFormProps {
 }
 
 const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
-  { value: "responsable_siège", label: "Responsable siège" },
+  { value: "admin", label: "Admin" },
   { value: "responsable_eglise", label: "Responsable église" },
   { value: "membre", label: "Membre" },
 ];
@@ -41,15 +41,15 @@ export function RoleForm({
   const router = useRouter();
 
   const isEgliseUser = currentUserRole === "responsable_eglise";
-  // Responsable d'église peut attribuer Responsable église ou Contributeur (uniquement pour son église) ; pas Responsable siège.
+  // Responsable d'église peut attribuer Responsable église ou Contributeur (uniquement pour son église) ; pas Admin.
   const roleOptions = isEgliseUser
-    ? ROLE_OPTIONS.filter((o) => o.value !== "responsable_siège")
+    ? ROLE_OPTIONS.filter((o) => o.value !== "admin")
     : ROLE_OPTIONS;
   const churchOptions = isEgliseUser && currentUserChurchId
     ? churches.filter((c) => c.id === currentUserChurchId)
     : churches;
   const needsChurch = role === "responsable_eglise" || role === "membre";
-  const finalChurchId = role === "responsable_siège" ? null : churchId || null;
+  const finalChurchId = role === "admin" ? null : churchId || null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

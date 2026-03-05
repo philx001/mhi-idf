@@ -44,7 +44,7 @@ function formatTime(timeStr: string | null) {
 function roleBadgeVariant(
   roleLabel: string
 ): "default" | "secondary" | "warning" | "outline" {
-  if (roleLabel === "Responsable siège") return "default";
+  if (roleLabel === "Admin") return "default";
   if (roleLabel === "Responsable église") return "secondary";
   if (roleLabel === "Contributeur") return "outline";
   return "warning";
@@ -88,8 +88,8 @@ export default async function DashboardPage() {
   const userIsSiege = roleInfo.isSiege;
   const userChurchId = roleInfo.churchId;
   const roleLabel =
-    roleInfo.role === "responsable_siège"
-      ? "Responsable siège"
+    roleInfo.role === "admin"
+      ? "Admin"
       : roleInfo.role === "responsable_eglise"
       ? "Responsable église"
       : roleInfo.role === "membre"
@@ -177,8 +177,8 @@ export default async function DashboardPage() {
               </p>
               <pre className="text-xs font-mono bg-white dark:bg-black/20 p-3 rounded border border-amber-200 dark:border-amber-800 break-all overflow-x-auto">
                 INSERT INTO user_roles (user_id, role, church_id)
-                {"\n"}VALUES (&apos;{user.id}&apos;, &apos;responsable_siège&apos;, NULL)
-                {"\n"}ON CONFLICT (user_id) DO UPDATE SET role = &apos;responsable_siège&apos;, church_id = NULL;
+                {"\n"}VALUES (&apos;{user.id}&apos;, &apos;admin&apos;, NULL)
+                {"\n"}ON CONFLICT (user_id) DO UPDATE SET role = &apos;admin&apos;, church_id = NULL;
               </pre>
               <p className="text-xs">
                 Vérifiez dans Supabase → Authentication → Users que cet UUID correspond bien à votre compte.

@@ -51,25 +51,37 @@ export function RevokeUserButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={loading}
-      className={`text-sm px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 shrink-0 ${
-        banned
-          ? "bg-green-600 text-white hover:bg-green-700"
+    <div className="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading}
+        className={`text-sm px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
+          banned
+            ? "bg-green-600 text-white hover:bg-green-700"
+            : confirm
+            ? "bg-red-600 text-white hover:bg-red-700"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
+      >
+        {loading
+          ? "..."
+          : banned
+          ? "Restaurer l'accès"
           : confirm
-          ? "bg-red-600 text-white hover:bg-red-700"
-          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-      }`}
-    >
-      {loading
-        ? "..."
-        : banned
-        ? "Restaurer l'accès"
-        : confirm
-        ? "Confirmer la révocation"
-        : "Révoquer l'accès"}
-    </button>
+          ? "Confirmer la révocation"
+          : "Révoquer l'accès"}
+      </button>
+      {confirm && !banned && (
+        <button
+          type="button"
+          onClick={() => setConfirm(false)}
+          disabled={loading}
+          className="text-sm px-3 py-1.5 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+        >
+          Annuler
+        </button>
+      )}
+    </div>
   );
 }

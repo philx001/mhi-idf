@@ -1,4 +1,4 @@
-export type UserRole = "responsable_siège" | "responsable_eglise" | "membre";
+export type UserRole = "admin" | "responsable_eglise" | "membre";
 
 export interface Church {
   id: string;

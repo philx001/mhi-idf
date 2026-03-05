@@ -29,7 +29,7 @@ export async function setEventMain(
 ): Promise<{ error?: string }> {
   const siege = await isSiege();
   if (!siege) {
-    return { error: "Seul le responsable siège peut modifier ce réglage." };
+    return { error: "Seul l'administrateur peut modifier ce réglage." };
   }
 
   const supabase = await createClient();

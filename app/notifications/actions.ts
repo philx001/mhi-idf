@@ -106,7 +106,7 @@ export async function updateNotification(
   if (fetchErr || !notif) return { error: "Notification introuvable." };
   const isSiege = auth.roleInfo.isSiege;
   if (notif.created_by !== auth.user.id && !isSiege) {
-    return { error: "Seul l'auteur ou le responsable siège peut modifier cette notification." };
+    return { error: "Seul l'auteur ou l'administrateur peut modifier cette notification." };
   }
 
   const { error } = await supabase
@@ -139,7 +139,7 @@ export async function deleteNotification(id: string): Promise<{ error?: string }
   if (fetchErr || !notif) return { error: "Notification introuvable." };
   const isSiege = auth.roleInfo.isSiege;
   if (notif.created_by !== auth.user.id && !isSiege) {
-    return { error: "Seul l'auteur ou le responsable siège peut supprimer cette notification." };
+    return { error: "Seul l'auteur ou l'administrateur peut supprimer cette notification." };
   }
 
   const { error } = await supabase.from("notifications").delete().eq("id", id);

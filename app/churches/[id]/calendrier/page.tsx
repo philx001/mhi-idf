@@ -70,7 +70,7 @@ export default async function ChurchCalendrierPage({
         <p className="text-gray-600 text-sm mb-2">
           {churchId === userChurchId
             ? "Votre calendrier regroupe deux types d’événements : les événements privés (visibles uniquement par votre église) et les événements partagés (visibles par tout le réseau sur le calendrier synthétique). Lors de la création ou modification d’un événement, vous choisissez « Privé » ou « Partagé »."
-            : "Calendrier de cette église (visible car vous êtes responsable siège). Les événements peuvent être privés (uniquement cette église) ou partagés (réseau)."}
+            : "Calendrier de cette église (visible car vous êtes administrateur). Les événements peuvent être privés (uniquement cette église) ou partagés (réseau)."}
         </p>
         <p className="text-gray-500 text-xs mb-6">
           En créant ou modifiant un événement, le champ « Calendrier : Privé ou Partagé » permet de le rattacher à l’un ou l’autre.

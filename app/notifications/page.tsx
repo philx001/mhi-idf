@@ -41,7 +41,7 @@ export default async function NotificationsPage() {
           Notifications
         </h1>
         <p className="text-gray-600 text-sm mb-6">
-          3 niveaux : Info, Normal, Important. Seul l&apos;auteur ou le responsable siège peut modifier ou supprimer.
+          3 niveaux : Info, Normal, Important. Seul l&apos;auteur ou l&apos;administrateur peut modifier ou supprimer.
         </p>
         <NotificationsList
           notifications={notifications}

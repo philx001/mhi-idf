@@ -5,13 +5,14 @@ import { RoleForm } from "@/app/admin/gestion-utilisateurs/RoleForm";
 import { assignRole, type AppRole, type UserWithRole } from "@/app/admin/actions";
 import { AddChurchMemberForm } from "./AddChurchMemberForm";
 import { RemoveFromChurchButton } from "./RemoveFromChurchButton";
+import { RevokeUserButton } from "@/app/admin/gestion-utilisateurs/RevokeUserButton";
 import { InviteForm } from "@/app/admin/gestion-utilisateurs/InviteForm";
 
 type UserWithoutRole = { id: string; email: string | undefined };
 type Church = { id: string; name: string };
 
 const ROLE_LABELS: Record<AppRole, string> = {
-  responsable_siège: "Responsable siège",
+  admin: "Admin",
   responsable_eglise: "Responsable église",
   membre: "Membre",
 };
@@ -24,6 +25,7 @@ interface ChurchMembersSectionProps {
   churches: Church[];
   currentUserRole: AppRole | null;
   currentUserChurchId: string | null;
+  currentUserId?: string;
 }
 
 export function ChurchMembersSection({
@@ -34,6 +36,7 @@ export function ChurchMembersSection({
   churches,
   currentUserRole,
   currentUserChurchId,
+  currentUserId,
 }: ChurchMembersSectionProps) {
   return (
     <section id="membres" className="mt-8">
@@ -97,6 +100,12 @@ export function ChurchMembersSection({
                 )}
               </div>
               <div className="flex items-center gap-3">
+                <RevokeUserButton
+                  userId={m.id}
+                  email={m.email ?? "utilisateur"}
+                  banned={m.banned}
+                  currentUserId={currentUserId}
+                />
                 <RoleForm
                   mode="edit"
                   userId={m.id}
@@ -107,7 +116,7 @@ export function ChurchMembersSection({
                   currentUserRole={currentUserRole}
                   currentUserChurchId={currentUserChurchId}
                 />
-                {!m.banned && (
+                {!m.banned && m.role !== "admin" && (
                   <RemoveFromChurchButton
                     userId={m.id}
                     churchId={churchId}

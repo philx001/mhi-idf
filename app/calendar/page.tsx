@@ -171,7 +171,7 @@ export default async function CalendarPage({
         </div>
         <p className="text-gray-600 text-sm mb-4">
           Programmes partagés par les églises, programmes principaux et dates en commun.
-          {userIsSiege && " En tant que responsable siège, vous pouvez marquer des événements comme « programme principal »."}
+          {userIsSiege && " En tant qu'administrateur, vous pouvez marquer des événements comme « programme principal »."}
         </p>
 
         <Suspense fallback={<div className="mb-4 h-10 animate-pulse bg-gray-200 rounded" />}>
