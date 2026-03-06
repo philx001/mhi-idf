@@ -30,7 +30,7 @@ function formatSize(bytes: number) {
 type Props = {
   churches: Church[];
   docsByChurch: Record<string, ChurchDocumentWithMeta[]>;
-  canWriteChurchIds: Set<string>;
+  canWriteChurchIds: string[];
 };
 
 export function DocumentsContent({ churches, docsByChurch, canWriteChurchIds }: Props) {
@@ -111,7 +111,7 @@ export function DocumentsContent({ churches, docsByChurch, canWriteChurchIds }: 
     <div className="space-y-8">
       {churches.map((church) => {
         const docs = docsByChurch[church.id] ?? [];
-        const canWrite = canWriteChurchIds.has(church.id);
+        const canWrite = canWriteChurchIds.includes(church.id);
         const isCollapsible = docs.length > COLLAPSIBLE_THRESHOLD;
         const isExpanded = expandedChurchIds.has(church.id);
 

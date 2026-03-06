@@ -52,12 +52,11 @@ export default async function DocumentsPage() {
   const userChurchId = auth.roleInfo.churchId;
   const isAdmin = role === "admin";
 
-  const canWriteChurchIds = new Set<string>();
-  if (isAdmin) {
-    churches.forEach((c) => canWriteChurchIds.add(c.id));
-  } else if (userChurchId) {
-    canWriteChurchIds.add(userChurchId);
-  }
+  const canWriteChurchIds: string[] = isAdmin
+    ? churches.map((c) => c.id)
+    : userChurchId
+      ? [userChurchId]
+      : [];
 
   const docsByChurch = documents.reduce<Record<string, typeof documents>>((acc, doc) => {
     const id = doc.church_id;

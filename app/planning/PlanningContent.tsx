@@ -375,16 +375,26 @@ export function PlanningContent({
                       )}
                     </div>
                   </div>
-                  {canCreateSession && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSession(session.id)}
-                      className="text-sm text-red-600 hover:underline disabled:opacity-50"
-                      disabled={busy}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Link
+                      href={`/planning/export/${session.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
                     >
-                      Supprimer la session
-                    </button>
-                  )}
+                      Exporter en PDF
+                    </Link>
+                    {canCreateSession && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSession(session.id)}
+                        className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                        disabled={busy}
+                      >
+                        Supprimer la session
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
