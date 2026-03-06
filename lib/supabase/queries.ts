@@ -4,6 +4,7 @@ import { createAdminClient } from "./admin";
 import { getUserWithTimeout } from "./auth";
 import type {
   Church,
+  ChurchDocumentWithMeta,
   EventWithChurch,
   DemandWithChurch,
   ProposalWithChurch,
@@ -718,4 +719,60 @@ export async function getLoginActivity(limit = 200): Promise<LoginActivityEntry[
     email: userMap[a.user_id]?.email ?? null,
     display_name: userMap[a.user_id]?.display_name ?? null,
   }));
+}
+
+// --- Documents partagés ---
+
+/**
+ * Liste tous les documents avec église et nom du créateur.
+ */
+export async function getChurchDocumentsWithMeta(): Promise<ChurchDocumentWithMeta[]> {
+  const admin = createAdminClient();
+  const { data: docs, error } = await admin
+    .from("church_documents")
+    .select("*, church:churches(name)")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  if (!docs?.length) return [];
+
+  const creatorIds = [...new Set(docs.map((d) => d.created_by))];
+  const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 500 });
+  const authUsers = usersData?.users ?? [];
+  const creatorMap = Object.fromEntries(
+    authUsers
+      .filter((u) => creatorIds.includes(u.id))
+      .map((u) => {
+        const meta = (u.user_metadata as Record<string, unknown>) ?? {};
+        const name =
+          [meta.first_name, meta.full_name].filter(Boolean).join(" ").trim() || u.email || "—";
+        return [u.id, name];
+      })
+  );
+
+  return docs.map((d) => ({
+    ...d,
+    church: d.church ?? null,
+    creator_name: d.created_by ? (creatorMap[d.created_by] ?? "—") : "—",
+  })) as ChurchDocumentWithMeta[];
+}
+
+/**
+ * Crée les dossiers documents pour les églises existantes (appelé une fois au chargement).
+ * Utilise le client admin. Ignore les erreurs (bucket peut ne pas exister).
+ */
+export async function ensureDocumentFoldersForExistingChurches(): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: churches, error } = await admin.from("churches").select("id");
+    if (error || !churches?.length) return;
+
+    for (const c of churches) {
+      await admin.storage.from("documents").upload(`${c.id}/.keep`, new Blob([""]), {
+        upsert: true,
+      });
+    }
+  } catch {
+    // Bucket peut ne pas exister ; ignoré
+  }
 }

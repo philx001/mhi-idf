@@ -21,6 +21,7 @@ import {
   LogOut,
   BookUser,
   ScrollText,
+  FolderOpen,
 } from "lucide-react";
 
 const allNavItems = [
@@ -32,6 +33,7 @@ const allNavItems = [
   { href: "/calendar", label: "Calendrier", icon: Calendar },
   { href: "/planning", label: "Planning partagé", icon: CalendarDays },
   { href: "/churches", label: "Profils des églises", icon: Church },
+  { href: "/documents", label: "Documents partagés", icon: FolderOpen },
   { href: "/carte-des-besoins", label: "Carte des besoins", icon: MapPin },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/gestion-utilisateurs", label: "Gestion des utilisateurs", icon: Users },
@@ -94,6 +96,7 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={item.href === "/documents" ? false : undefined}
               className={cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 border-l-2",
                 "bg-[var(--sidebar-nav-bg)] text-[var(--sidebar-nav-foreground)]",

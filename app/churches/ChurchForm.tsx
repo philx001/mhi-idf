@@ -65,16 +65,31 @@ export function ChurchForm({ church, canToggleActive = false }: ChurchFormProps)
 
         if (updateError) throw updateError;
       } else {
-        const { error: insertError } = await supabase.from("churches").insert({
-          name,
-          description: description || null,
-          contacts,
-          specialities: specialitiesList,
-          is_active: isActive,
-          updated_at: new Date().toISOString(),
-        });
+        const { data: inserted, error: insertError } = await supabase
+          .from("churches")
+          .insert({
+            name,
+            description: description || null,
+            contacts,
+            specialities: specialitiesList,
+            is_active: isActive,
+            updated_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
 
         if (insertError) throw insertError;
+
+        // Créer le dossier documents pour cette église (placeholder)
+        if (inserted?.id) {
+          try {
+            await supabase.storage
+              .from("documents")
+              .upload(`${inserted.id}/.keep`, new Blob([""]), { upsert: true });
+          } catch {
+            // Bucket peut ne pas exister encore ; ignoré
+          }
+        }
       }
 
       router.push("/churches");

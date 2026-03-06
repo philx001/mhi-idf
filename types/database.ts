@@ -144,3 +144,22 @@ export interface Notification {
   created_at: string;
   updated_at: string;
 }
+
+// --- Documents partagés par église ---
+
+export interface ChurchDocument {
+  id: string;
+  church_id: string;
+  storage_path: string;
+  title: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface ChurchDocumentWithMeta extends ChurchDocument {
+  church: { name: string } | null;
+  creator_name: string;
+}
