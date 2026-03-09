@@ -9,7 +9,11 @@ const NO_SIDEBAR_PATHS = ["/", "/login", "/mot-de-passe-oublie", "/reinitialiser
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const showSidebar = pathname && !NO_SIDEBAR_PATHS.includes(pathname);
+  const isExportPage = pathname?.startsWith("/planning/export");
+  const showSidebar =
+    pathname &&
+    !NO_SIDEBAR_PATHS.includes(pathname) &&
+    !isExportPage;
 
   if (!showSidebar) {
     return <>{children}</>;
