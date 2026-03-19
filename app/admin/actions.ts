@@ -27,6 +27,8 @@ type GetUsersWithRolesOptions = {
   auth?: Awaited<ReturnType<typeof getUserAndRole>> | null;
   /** Pour la page profil église : passer l’id de l’église pour que le responsable d’église reçoive usersWithoutRole (sinon il ne les voit pas). */
   forChurchPage?: string;
+  /** Pour le planning : si true, permet aux membres (avec église) d'accéder à la liste des utilisateurs pour les inscriptions. */
+  forPlanning?: boolean;
   /** Pour le planning partagé : si true (siège ou responsable église de Croissy), retourne tous les utilisateurs avec rôle. */
   forPlanningAllUsers?: boolean;
 };
@@ -387,7 +389,6 @@ export async function createUserWithPassword(
   }
 
   if (role === "admin") return { error: "Seul l'administrateur peut créer un compte admin." };
-  if (isEgliseUser && role === "admin") return { error: "Seul l'administrateur peut attribuer ce rôle." };
 
   if (isEgliseUser && !current.isCroissyResponsible && current.churchId) {
     if (churchId && churchId !== current.churchId) {
@@ -396,7 +397,7 @@ export async function createUserWithPassword(
     if (!churchId) churchId = current.churchId;
   }
 
-  if (role !== "admin" && !churchId) {
+  if (!churchId) {
     return { error: "Une église doit être sélectionnée pour ce rôle." };
   }
 
@@ -414,7 +415,7 @@ export async function createUserWithPassword(
       const supabase = await createClient();
       const currentUser = await getUserWithTimeout(supabase);
       if (currentUser && churchId) {
-        const finalRole = role === "admin" ? "membre" : role;
+        const finalRole = role;
         const { error: assignErr } = await adminSupabase
           .from("user_roles")
           .upsert(
