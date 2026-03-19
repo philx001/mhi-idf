@@ -18,14 +18,14 @@ export default async function ChurchesPage() {
 
   const churches = await getChurches(false);
 
-  // Chaque responsable d'église peut modifier le profil de son église ; le siège peut modifier toutes les églises.
+  // Admin : toutes les églises. Responsable : uniquement son église.
   const canEditMap = Object.fromEntries(
     churches.map((c) => [
       c.id,
-      userIsSiege || (roleInfo.isResponsableEglise && userChurchId === c.id),
+      userIsSiege || (userChurchId === c.id && roleInfo.isResponsableEglise),
     ])
   );
-  const isResponsableEglise = roleInfo.isResponsableEglise && !!userChurchId;
+  const canEditOwnChurch = !!userChurchId && roleInfo.isResponsableEglise;
 
   return (
     <main className="min-h-screen p-8">
@@ -52,9 +52,9 @@ export default async function ChurchesPage() {
           </div>
         </div>
 
-        {isResponsableEglise && (
+        {canEditOwnChurch && (
           <p className="mb-6 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            En tant que responsable d&apos;église, vous pouvez <strong>modifier le profil de votre église</strong> (nom, description, contacts, spécialités) en cliquant sur « Modifier » ou « Membres » sur la carte de votre église.
+            En tant que responsable de votre église, vous pouvez <strong>modifier le profil de votre église</strong> (nom, description, contacts, spécialités) en cliquant sur « Modifier » ou « Membres » sur la carte de votre église.
           </p>
         )}
 

@@ -33,6 +33,12 @@ function formatDate(d: string) {
   });
 }
 
+/** Normalise le format d'heure (22:00 ou 22:00:00 → 22:00) pour la correspondance avec les signups. */
+function normalizeSlotTime(t: string): string {
+  const s = String(t).trim();
+  return s.length >= 5 ? s.substring(0, 5) : s;
+}
+
 /** Génère les créneaux horaires entre start et end. */
 function getSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
@@ -116,7 +122,7 @@ export default async function PlanningExportPage({
   const slots = getSlots(session.start_time, session.end_time);
   const signupsBySlot = new Map<string, PrayerSlotSignup[]>();
   for (const s of signups ?? []) {
-    const key = s.slot_time;
+    const key = normalizeSlotTime(s.slot_time);
     if (!signupsBySlot.has(key)) signupsBySlot.set(key, []);
     signupsBySlot.get(key)!.push(s);
   }
@@ -164,7 +170,7 @@ export default async function PlanningExportPage({
                   Créneau
                 </th>
                 <th className="border border-gray-300 px-3 py-2 text-left font-medium">
-                  Inscriptions (max 3 par église)
+                  Inscriptions (max 3 par créneau)
                 </th>
               </tr>
             </thead>

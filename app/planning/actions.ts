@@ -7,32 +7,57 @@ import { getUserAndRole, getPrayerSessions, getPrayerSlotSignups } from "@/lib/s
 import type { PrayerSession, PrayerSlotSignup } from "@/types/database";
 import { getUsersWithRoles } from "@/app/admin/actions";
 
-/** Résout les user_id en emails pour l'affichage (utilise admin). En cas d'erreur, retourne un map vide. */
-async function getEmailsForUserIds(userIds: string[]): Promise<Record<string, string>> {
-  if (userIds.length === 0) return {};
+/** Prénom + nom pour l'affichage (first_name + full_name). */
+function getDisplayName(meta: Record<string, unknown>): string {
+  return [meta.first_name, meta.full_name].filter(Boolean).join(" ").trim() || "(utilisateur)";
+}
+
+/** Résout user_id + church_id en affichage (prénom + nom, église). */
+async function getDisplayInfoForSignups(
+  signups: PrayerSlotSignup[]
+): Promise<{
+  userDisplayNames: Record<string, string>;
+  churchNames: Record<string, string>;
+}> {
+  const userIds = [...new Set(signups.map((s) => s.user_id))];
+  const churchIds = [...new Set(signups.map((s) => s.church_id).filter(Boolean))];
+  const userDisplayNames: Record<string, string> = {};
+  const churchNames: Record<string, string> = {};
+
   try {
     const admin = createAdminClient();
-    const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
-    const users = data?.users ?? [];
-    const map: Record<string, string> = {};
-    for (const uid of userIds) {
-      const u = users.find((x) => x.id === uid);
-      map[uid] = u?.email ?? "(utilisateur)";
+    if (userIds.length > 0) {
+      const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const users = data?.users ?? [];
+      for (const uid of userIds) {
+        const u = users.find((x) => x.id === uid);
+        const meta = (u?.user_metadata as Record<string, unknown>) ?? {};
+        userDisplayNames[uid] = getDisplayName(meta);
+      }
     }
-    return map;
+    if (churchIds.length > 0) {
+      const { data } = await admin.from("churches").select("id, name").in("id", churchIds);
+      for (const c of data ?? []) {
+        churchNames[c.id] = c.name;
+      }
+    }
   } catch {
-    return {};
+    // Fallback
   }
+  return { userDisplayNames, churchNames };
 }
 
 export type PlanningPageData = {
   sessions: PrayerSession[];
   signups: PrayerSlotSignup[];
   userDisplayNames: Record<string, string>;
+  churchNames: Record<string, string>;
   canCreateSession: boolean;
   canAddSignup: boolean;
   churchMembers: { id: string; email: string }[];
   currentUserId: string | null;
+  userChurchId: string | null;
+  isResponsableEglise: boolean;
   error?: string;
 };
 
@@ -49,10 +74,13 @@ export async function getPlanningPageData(params?: {
         sessions: [],
         signups: [],
         userDisplayNames: {},
+        churchNames: {},
         canCreateSession: false,
         canAddSignup: false,
         churchMembers: [],
         currentUserId: null,
+        userChurchId: null,
+        isResponsableEglise: false,
         error: "Non authentifié",
       };
     }
@@ -87,13 +115,12 @@ export async function getPlanningPageData(params?: {
     const sessionIds = sortedSessions.map((s) => s.id);
     const signups = await getPrayerSlotSignups(sessionIds);
 
-    const userIds = [...new Set(signups.map((s) => s.user_id))];
-    const userDisplayNames = await getEmailsForUserIds(userIds);
+    const { userDisplayNames, churchNames } = await getDisplayInfoForSignups(signups);
 
     let churchMembers: { id: string; email: string }[] = [];
     if (canAddSignup) {
       try {
-        // Siège : tous les utilisateurs. Responsable église : seulement les membres de son église, sauf responsable de l'église de Croissy qui voit tous.
+        // Siège : tous les utilisateurs. Responsable église : seulement les membres de son église, sauf responsable de l'église de Croissy qui voit tous. Membre : seulement son église.
         const isCroissyResponsible =
           roleInfo.isResponsableEglise &&
           roleInfo.churchId &&
@@ -133,10 +160,13 @@ export async function getPlanningPageData(params?: {
       sessions: sortedSessions,
       signups,
       userDisplayNames,
+      churchNames,
       canCreateSession,
       canAddSignup,
       churchMembers,
       currentUserId: user.id,
+      userChurchId: roleInfo.churchId ?? null,
+      isResponsableEglise: roleInfo.isResponsableEglise,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erreur inconnue";
@@ -147,10 +177,13 @@ export async function getPlanningPageData(params?: {
       sessions: [],
       signups: [],
       userDisplayNames: {},
+      churchNames: {},
       canCreateSession: false,
       canAddSignup: false,
       churchMembers: [],
       currentUserId: null,
+      userChurchId: null,
+      isResponsableEglise: false,
       error: `Erreur lors du chargement du planning : ${message}.${hint}`,
     };
   }
@@ -214,6 +247,33 @@ export async function addPrayerSignup(input: {
     return { error: "Seuls les responsables peuvent ajouter des inscriptions." };
   }
 
+  // Responsable église : uniquement les membres de son église (sauf admin et responsable Croissy)
+  if (auth.roleInfo.isResponsableEglise && !auth.roleInfo.isSiege && auth.roleInfo.churchId) {
+    const isCroissy =
+      (await supabase.from("churches").select("name").eq("id", auth.roleInfo.churchId).single())
+        .data?.name?.toLowerCase().includes("croissy") ?? false;
+    if (!isCroissy) {
+      const { data: targetRole } = await supabase
+        .from("user_roles")
+        .select("church_id")
+        .eq("user_id", input.user_id)
+        .single();
+      if (targetRole?.church_id !== auth.roleInfo.churchId) {
+        return { error: "Vous ne pouvez inscrire que les membres de votre église." };
+      }
+    }
+  }
+
+  // Max 3 inscriptions par créneau (total, toutes églises confondues)
+  const { data: existing } = await supabase
+    .from("prayer_slot_signups")
+    .select("id")
+    .eq("prayer_session_id", input.prayer_session_id)
+    .eq("slot_time", input.slot_time);
+  if ((existing?.length ?? 0) >= 3) {
+    return { error: "Ce créneau a déjà 3 inscriptions (maximum autorisé)." };
+  }
+
   const { error } = await supabase.from("prayer_slot_signups").insert({
     prayer_session_id: input.prayer_session_id,
     slot_time: input.slot_time,
@@ -233,13 +293,21 @@ export async function removePrayerSignup(signupId: string): Promise<{ error?: st
 
   const { data: signup, error: fetchError } = await supabase
     .from("prayer_slot_signups")
-    .select("added_by_user_id, user_id")
+    .select("added_by_user_id, user_id, church_id")
     .eq("id", signupId)
     .single();
 
   if (fetchError || !signup) return { error: "Inscription introuvable." };
-  if (signup.added_by_user_id !== auth.user.id && signup.user_id !== auth.user.id) {
-    return { error: "Vous ne pouvez supprimer que vos propres inscriptions." };
+
+  const canRemove =
+    signup.added_by_user_id === auth.user.id ||
+    signup.user_id === auth.user.id ||
+    (auth.roleInfo.isResponsableEglise &&
+      auth.roleInfo.churchId &&
+      signup.church_id === auth.roleInfo.churchId);
+
+  if (!canRemove) {
+    return { error: "Vous ne pouvez supprimer que les inscriptions de votre église ou vos propres inscriptions." };
   }
 
   const { error } = await supabase.from("prayer_slot_signups").delete().eq("id", signupId);

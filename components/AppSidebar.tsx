@@ -60,7 +60,7 @@ export function AppSidebar() {
     if (item.href === "/journal-activite") return isAdmin;
     // Gestion des utilisateurs : admin ou responsable église
     if (item.href === "/admin/gestion-utilisateurs") return isResponsable;
-    // Nouvel événement : responsable siège ou église. Ne pas afficher quand role est null (évite apparition/disparition).
+    // Nouvel événement : responsable siège ou responsable église uniquement.
     if (item.href === "/events/new") return isResponsable;
     return true;
   });

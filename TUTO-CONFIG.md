@@ -99,6 +99,28 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxxxx...
 
 **Important :** Redémarrer le serveur après modification de `.env.local`
 
+### Utiliser l'URL Vercel (invitations, mot de passe oublié)
+
+Pour que les liens d'invitation et de réinitialisation de mot de passe pointent vers votre application en ligne (Vercel) au lieu de localhost :
+
+1. **Variable d'environnement** : Dans Vercel > Settings > Environment Variables, ajoutez :
+   ```
+   NEXT_PUBLIC_APP_URL=https://votre-app.vercel.app
+   ```
+   (Remplacez par l’URL réelle de votre déploiement Vercel.)
+
+   *Alternative :* Vercel définit automatiquement `VERCEL_URL` (ex. `mhi-idf.vercel.app`). L’app utilise cette variable si `NEXT_PUBLIC_APP_URL` n’est pas définie, en ajoutant `https://`.
+
+2. **Configuration Supabase** : Supabase Dashboard > **Authentication** > **URL Configuration** :
+   - **Site URL** : `https://votre-app.vercel.app` (URL de production)
+   - **Redirect URLs** : ajoutez les URLs autorisées, par exemple :
+     - `https://votre-app.vercel.app/**`
+     - `https://votre-app.vercel.app/login`
+     - `https://votre-app.vercel.app/reinitialiser-mot-de-passe`
+     - `http://localhost:3000/**` (pour le développement local)
+
+   Sans ces URLs, Supabase refusera les redirections après invitation ou réinitialisation de mot de passe.
+
 ### Créer un utilisateur de test (Auth)
 
 Pour tester la connexion, créez un utilisateur dans Supabase :

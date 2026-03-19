@@ -22,7 +22,7 @@ export default async function NotificationsPage() {
     redirect("/login");
   }
 
-  const notifications = await getNotifications({ limit: 100 });
+  const notifications = await getNotifications({ limit: 500 });
   const currentUserId = auth.user.id;
   const isSiege = auth.roleInfo.isSiege;
   const canEditMap = Object.fromEntries(

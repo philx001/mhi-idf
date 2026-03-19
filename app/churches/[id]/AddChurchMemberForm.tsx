@@ -29,6 +29,7 @@ export function AddChurchMemberForm({
   const [role, setRole] = useState<AppRole>("membre");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -44,6 +45,8 @@ export function AddChurchMemberForm({
     }
     setUserId("");
     setRole("membre");
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
     router.refresh();
   }
 
@@ -105,6 +108,7 @@ export function AddChurchMemberForm({
         {loading ? "Ajout..." : "Ajouter à l'église"}
       </button>
       {error && <p className="text-sm text-red-600 w-full">{error}</p>}
+      {success && <p className="text-sm text-green-600 w-full">Membre ajouté avec succès.</p>}
     </form>
   );
 }

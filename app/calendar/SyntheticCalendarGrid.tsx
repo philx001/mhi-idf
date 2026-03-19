@@ -128,14 +128,14 @@ export function SyntheticCalendarGrid({
                 <ul className="mt-1 space-y-0.5 overflow-auto flex-1">
                   {dayEvents.map((ev) => (
                     <li key={ev.id}>
-                      <Link
-                        href={`/events/${ev.id}/edit`}
+                      <a
+                        href={`#event-${ev.id}`}
                         className="block text-xs truncate rounded px-1 py-0.5 hover:opacity-90"
                         style={getChurchColorStyle(ev.church_id)}
                         title={`${ev.title} · ${ev.church?.name ?? ""} · ${ev.type === "autre" && ev.type_other ? ev.type_other : (EVENT_TYPE_LABELS[ev.type] ?? ev.type)}${ev.event_time ? ` ${formatTime(ev.event_time)}` : ""}`}
                       >
                         {ev.is_main ? "★ " : ""}{ev.title}
-                      </Link>
+                      </a>
                     </li>
                   ))}
                 </ul>

@@ -48,13 +48,13 @@ export default async function DocumentsPage() {
     );
   }
 
-  const role = auth.roleInfo.role;
+  const isAdmin = auth.roleInfo.isSiege;
+  const isResponsableEglise = auth.roleInfo.isResponsableEglise;
   const userChurchId = auth.roleInfo.churchId;
-  const isAdmin = role === "admin";
 
   const canWriteChurchIds: string[] = isAdmin
     ? churches.map((c) => c.id)
-    : userChurchId
+    : isResponsableEglise && userChurchId
       ? [userChurchId]
       : [];
 
@@ -78,7 +78,7 @@ export default async function DocumentsPage() {
           Documents partagés
         </h1>
         <p className="text-muted-foreground text-sm mb-6">
-          Chaque église dispose de son propre dossier. Tous les membres peuvent consulter ; seuls les membres de l&apos;église peuvent déposer ou supprimer les documents de sa propre église.
+          Chaque église dispose de son propre dossier. Tous peuvent consulter ; seuls les responsables d&apos;église peuvent déposer ou supprimer les documents de leur église.
         </p>
 
         <DocumentsContent

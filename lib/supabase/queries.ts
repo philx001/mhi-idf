@@ -134,7 +134,7 @@ export async function getUserChurchId(
   return null;
 }
 
-/** true si l'utilisateur est admin ou responsable de cette église. Les membres ne peuvent pas modifier. */
+/** true si l'utilisateur est admin ou responsable de cette église. */
 export async function canEditChurch(churchId: string): Promise<boolean> {
   const client = await createClient();
   const uid = (await getUserWithTimeout(client))?.id;
@@ -212,7 +212,7 @@ export async function getUpcomingEvents(
   return enrichEventsWithChurch((data ?? []) as EventWithChurch[], client);
 }
 
-/** true si l'utilisateur est admin ou responsable de l'église de l'événement. Les membres ne peuvent pas modifier. */
+/** true si l'utilisateur est admin ou responsable de l'église de l'événement. */
 export async function canEditEvent(eventId: string): Promise<boolean> {
   const supabase = await createClient();
   const user = await getUserWithTimeout(supabase);
@@ -459,19 +459,45 @@ export async function canEditDemand(demandId: string): Promise<boolean> {
   const user = await getUserWithTimeout(supabase);
   if (!user) return false;
 
-  const { data: demand } = await supabase
-    .from("demands")
-    .select("church_id")
-    .eq("id", demandId)
-    .single();
+  const [{ data: demand }, { data: roleData }, userIsSiege, userChurchId] =
+    await Promise.all([
+      supabase.from("demands").select("church_id").eq("id", demandId).single(),
+      supabase.from("user_roles").select("role").eq("user_id", user.id).single(),
+      isSiege(),
+      getUserChurchId(),
+    ]);
 
   if (!demand) return false;
 
-  const [userIsSiege, userChurchId] = await Promise.all([
-    isSiege(),
-    getUserChurchId(),
-  ]);
-  return userIsSiege || userChurchId === demand.church_id;
+  return (
+    userIsSiege ||
+    (roleData?.role === "responsable_eglise" && userChurchId === demand.church_id)
+  );
+}
+
+export async function updateDemand(
+  id: string,
+  input: { types?: string[]; title?: string; description?: string | null; importance?: string | null }
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("demands")
+    .update({
+      ...input,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteDemand(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("demands").delete().eq("id", id);
+  if (error) throw error;
 }
 
 // --- Epic 5: Annonces du siège ---

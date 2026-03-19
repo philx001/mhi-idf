@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createDemand } from "@/app/carte-des-besoins/actions";
+import { createDemand, updateDemand } from "@/app/carte-des-besoins/actions";
 import type { Church } from "@/types/database";
-import type { DemandType, DemandImportance } from "@/types/database";
+import type { Demand, DemandType, DemandImportance } from "@/types/database";
 
 const DEMAND_TYPES: { value: DemandType; label: string }[] = [
   { value: "intervenant", label: "Intervenant" },
@@ -26,9 +26,10 @@ const IMPORTANCE_OPTIONS: { value: DemandImportance; label: string }[] = [
 
 interface DemandFormProps {
   churches: Church[];
+  demand?: Demand | null;
 }
 
-export function DemandForm({ churches }: DemandFormProps) {
+export function DemandForm({ churches, demand }: DemandFormProps) {
   const [churchId, setChurchId] = useState(churches[0]?.id ?? "");
   const [types, setTypes] = useState<DemandType[]>(["intervenant"]);
   const [title, setTitle] = useState("");
@@ -37,6 +38,17 @@ export function DemandForm({ churches }: DemandFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const isEdit = !!demand;
+
+  useEffect(() => {
+    if (demand) {
+      setChurchId(demand.church_id);
+      setTypes(demand.types ?? ["intervenant"]);
+      setTitle(demand.title);
+      setDescription(demand.description ?? "");
+      setImportance((demand.importance as DemandImportance) ?? "");
+    }
+  }, [demand]);
 
   function toggleType(t: DemandType) {
     setTypes((prev) =>
@@ -53,13 +65,20 @@ export function DemandForm({ churches }: DemandFormProps) {
     }
     setLoading(true);
 
-    const result = await createDemand({
-      church_id: churchId,
-      types,
-      title,
-      description: description || undefined,
-      importance: importance || undefined,
-    });
+    const result = isEdit
+      ? await updateDemand(demand!.id, {
+          types,
+          title,
+          description: description || null,
+          importance: importance || null,
+        })
+      : await createDemand({
+          church_id: churchId,
+          types,
+          title,
+          description: description || undefined,
+          importance: importance || undefined,
+        });
 
     setLoading(false);
 
@@ -68,33 +87,35 @@ export function DemandForm({ churches }: DemandFormProps) {
       return;
     }
 
-    router.push("/carte-des-besoins");
+    router.push(isEdit ? `/carte-des-besoins/${demand!.id}` : "/carte-des-besoins");
     router.refresh();
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label
-          htmlFor="church"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Église *
-        </label>
-        <select
-          id="church"
-          value={churchId}
-          onChange={(e) => setChurchId(e.target.value)}
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          {churches.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!isEdit && (
+        <div>
+          <label
+            htmlFor="church"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Église *
+          </label>
+          <select
+            id="church"
+            value={churchId}
+            onChange={(e) => setChurchId(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {churches.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <span className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,7 +211,7 @@ export function DemandForm({ churches }: DemandFormProps) {
         disabled={loading}
         className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? "Création..." : "Créer la demande"}
+        {loading ? (isEdit ? "Enregistrement..." : "Création...") : isEdit ? "Enregistrer" : "Créer la demande"}
       </button>
     </form>
   );

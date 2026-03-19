@@ -46,6 +46,12 @@ const ATTENDANCE_LABELS: Record<string, string> = {
 
 const VISIBLE_SESSIONS_INITIAL = 5;
 
+/** Normalise le format d'heure (22:00 ou 22:00:00 → 22:00) pour la correspondance avec les signups. */
+function normalizeSlotTime(t: string): string {
+  const s = String(t).trim();
+  return s.length >= 5 ? s.substring(0, 5) : s;
+}
+
 /** Génère les créneaux horaires entre start et end (par pas d'1h). Gère le passage à minuit. */
 function getSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
@@ -72,10 +78,13 @@ type Props = {
   sessions: PrayerSession[];
   signups: PrayerSlotSignup[];
   userDisplayNames: Record<string, string>;
+  churchNames: Record<string, string>;
   canCreateSession: boolean;
   canAddSignup: boolean;
   churchMembers: { id: string; email: string }[];
   currentUserId: string | null;
+  userChurchId: string | null;
+  isResponsableEglise: boolean;
   filterFrom?: string;
   filterTo?: string;
   filterMonth?: string;
@@ -89,10 +98,13 @@ export function PlanningContent({
   sessions,
   signups,
   userDisplayNames,
+  churchNames,
   canCreateSession,
   canAddSignup,
   churchMembers,
   currentUserId,
+  userChurchId,
+  isResponsableEglise,
   filterFrom,
   filterTo,
   filterMonth,
@@ -113,7 +125,8 @@ export function PlanningContent({
 
   const signupsBySessionSlot = new Map<string, PrayerSlotSignup[]>();
   for (const s of signups) {
-    const key = `${s.prayer_session_id}|${s.slot_time}`;
+    const slotNorm = normalizeSlotTime(s.slot_time);
+    const key = `${s.prayer_session_id}|${slotNorm}`;
     if (!signupsBySessionSlot.has(key)) signupsBySessionSlot.set(key, []);
     signupsBySessionSlot.get(key)!.push(s);
   }
@@ -405,13 +418,13 @@ export function PlanningContent({
                           Créneau
                         </th>
                         <th className="text-left py-2 font-medium text-gray-700">
-                          Inscriptions (max 3 par église)
+                          Inscriptions (max 3 par créneau)
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {slots.map((slotTime) => {
-                        const key = `${session.id}|${slotTime}`;
+                        const key = `${session.id}|${normalizeSlotTime(slotTime)}`;
                         const slotSignups = signupsBySessionSlot.get(key) ?? [];
                         const isAdding = addSignupFor?.sessionId === session.id && addSignupFor?.slotTime === slotTime;
                         return (
@@ -425,10 +438,19 @@ export function PlanningContent({
                                   <span
                                     key={su.id}
                                     className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-800 rounded"
+                                    title={churchNames[su.church_id] ? `${userDisplayNames[su.user_id] ?? su.user_id} · ${churchNames[su.church_id]}` : undefined}
                                   >
                                     {userDisplayNames[su.user_id] ?? su.user_id}
-                                    {(currentUserId === su.added_by_user_id ||
-                                      currentUserId === su.user_id) && (
+                                    {su.church_id && churchNames[su.church_id] && (
+                                      <span className="text-muted-foreground text-xs">
+                                        ({churchNames[su.church_id]})
+                                      </span>
+                                    )}
+                                    {((currentUserId === su.added_by_user_id ||
+                                      currentUserId === su.user_id) ||
+                                      (isResponsableEglise &&
+                                        userChurchId &&
+                                        su.church_id === userChurchId)) && (
                                       <button
                                         type="button"
                                         onClick={() => handleRemoveSignup(su.id)}

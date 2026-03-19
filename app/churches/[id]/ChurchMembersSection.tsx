@@ -50,19 +50,14 @@ export function ChurchMembersSection({
       <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900">
         <p className="font-medium mb-1">La personne n’apparaît pas dans la liste ?</p>
         <p className="mb-2">
-          Seules les personnes qui ont déjà un compte dans l’application (inscrit ou invité) peuvent être ajoutées ici. Pour ajouter quelqu’un qui n’a pas encore de compte :
+          Pour créer un nouveau compte, cliquez sur « + Inviter un membre » ci-dessous et choisissez :
         </p>
-        <ol className="list-decimal list-inside space-y-1 mb-2">
-          <li>Cliquez sur <strong>« + Inviter un membre »</strong> ci-dessous et saisissez son email. Un email lui sera envoyé (lien 24 h) et il sera ajouté comme membre. Ou allez dans la{" "}
-            <Link href="/admin/gestion-utilisateurs" className="text-blue-600 hover:underline font-medium">
-              Gestion des utilisateurs
-            </Link>{" "}
-            (lien dans le tableau de bord).
-          </li>
-          <li>Une fois qu’il aura accepté l’invitation par email, il apparaîtra dans « membres ».</li>
+        <ol className="list-disc list-inside space-y-1 mb-2">
+          <li><strong>Option A – Inviter par email</strong> : un lien valable 24 h sera envoyé ; la personne crée son mot de passe en cliquant sur le lien.</li>
+          <li><strong>Option B – Créer avec mot de passe</strong> : vous définissez un mot de passe et un rôle (Membre ou Responsable église) ; la personne peut se connecter immédiatement avec le mot de passe que vous lui communiquez.</li>
         </ol>
         <p className="text-amber-800 text-xs">
-          L’email de contact de l’église (ex. contact_cergy@gmail.com) est uniquement une information du profil : il ne crée pas de compte. Il faut inviter cette adresse pour qu’elle devienne utilisateur.
+          L’email de contact de l’église est une simple information du profil : il ne crée pas de compte. Il faut inviter ou créer le compte pour cette adresse.
         </p>
       </div>
 
@@ -71,6 +66,9 @@ export function ChurchMembersSection({
       </div>
 
       <div className="mb-4">
+        <p className="text-xs text-gray-500 mb-2">
+          Utilisateurs sans rôle : comptes créés (invitation ou inscription) mais pas encore assignés à une église.
+        </p>
         <AddChurchMemberForm
           churchId={churchId}
           usersWithoutRole={usersWithoutRole}

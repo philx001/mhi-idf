@@ -114,6 +114,19 @@ export default async function CalendarPage({
   const eventDates = new Set(events.map((e) => e.event_date));
   const emptyPeriods = getEmptyPeriods(fromStr, toStr, eventDates);
   const mainEvents = events.filter((e) => e.is_main);
+  const today = now.toISOString().split("T")[0];
+  const upcomingEvents = events
+    .filter((e) => e.event_date >= today)
+    .sort((a, b) => {
+      if (a.event_date !== b.event_date) return a.event_date.localeCompare(b.event_date);
+      return (a.event_time ?? "").localeCompare(b.event_time ?? "");
+    });
+  const pastEvents = events
+    .filter((e) => e.event_date < today)
+    .sort((a, b) => {
+      if (a.event_date !== b.event_date) return b.event_date.localeCompare(a.event_date);
+      return (b.event_time ?? "").localeCompare(a.event_time ?? "");
+    });
   const dateToChurchIds = events.reduce<Record<string, Set<string>>>((acc, e) => {
     const d = e.event_date;
     if (!acc[d]) acc[d] = new Set();
@@ -235,7 +248,8 @@ export default async function CalendarPage({
               {mainEvents.map((event) => (
                 <li
                   key={event.id}
-                  className="border border-gray-200 rounded-lg p-4 bg-white"
+                  id={`event-${event.id}`}
+                  className="border border-gray-200 rounded-lg p-4 bg-white scroll-mt-24"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -326,12 +340,16 @@ export default async function CalendarPage({
               Aucun événement partagé sur cette période. Les événements marqués « Partagé » par les églises apparaîtront ici.
             </p>
           ) : (
-            <ul className="space-y-4">
-              {events.map((event) => (
-                <li
-                  key={event.id}
-                  className="border border-gray-200 rounded-lg p-4 bg-white"
-                >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">À venir (du plus proche au plus lointain)</h3>
+                <ul className="space-y-4">
+                  {upcomingEvents.map((event) => (
+                    <li
+                      key={event.id}
+                      id={`event-${event.id}`}
+                      className="border border-gray-200 rounded-lg p-4 bg-white scroll-mt-24"
+                    >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="font-medium text-gray-900">{event.title}</p>
@@ -378,7 +396,66 @@ export default async function CalendarPage({
                   </div>
                 </li>
               ))}
-            </ul>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Déjà passés</h3>
+                <ul className="space-y-4">
+                  {pastEvents.map((event) => (
+                    <li
+                      key={event.id}
+                      id={`event-${event.id}`}
+                      className="border border-gray-200 rounded-lg p-4 bg-white opacity-90 scroll-mt-24"
+                    >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-gray-900">{event.title}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formatDate(event.event_date)}
+                        {event.event_time && ` · ${formatTime(event.event_time)}`}
+                      </p>
+                      {event.church && (
+                        <p className="text-sm mt-1">
+                          <span
+                            className="inline-block text-xs px-2 py-0.5 rounded font-medium"
+                            style={getChurchColorStyle(event.church_id)}
+                          >
+                            {event.church.name}
+                          </span>
+                        </p>
+                      )}
+                      {event.location && (
+                        <p className="text-sm text-gray-500 mt-1">📍 {event.location}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="inline-block text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded">
+                          {event.type === "autre" && event.type_other ? event.type_other : (EVENT_TYPE_LABELS[event.type] ?? event.type)}
+                        </span>
+                        {event.is_main && (
+                          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
+                            Principal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {userIsSiege && (
+                        <SetEventMainButton
+                          eventId={event.id}
+                          isMain={event.is_main}
+                        />
+                      )}
+                      <EventActions
+                        eventId={event.id}
+                        canEdit={canEditMap[event.id] ?? false}
+                      />
+                    </div>
+                  </div>
+                </li>
+              ))}
+                </ul>
+              </div>
+            </div>
           )}
         </section>
       </div>

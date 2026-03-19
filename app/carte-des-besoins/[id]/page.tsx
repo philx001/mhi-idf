@@ -8,8 +8,10 @@ import {
   getChurches,
   getUserChurchId,
   isSiege,
+  canEditDemand,
 } from "@/lib/supabase/queries";
 import { ProposalForm } from "./ProposalForm";
+import { DemandActions } from "../DemandActions";
 
 const DEMAND_TYPE_LABELS: Record<string, string> = {
   intervenant: "Intervenant",
@@ -51,13 +53,14 @@ export default async function DemandeDetailPage({
     redirect("/login");
   }
 
-  const [demand, proposals, churches, userChurchId, userIsSiege] =
+  const [demand, proposals, churches, userChurchId, userIsSiege, userCanEdit] =
     await Promise.all([
       getDemandById(id),
       getProposalsByDemandId(id),
       getChurches(true),
       getUserChurchId(),
       isSiege(),
+      canEditDemand(id),
     ]);
 
   if (!demand) {
@@ -108,6 +111,7 @@ export default async function DemandeDetailPage({
           <p className="text-sm text-gray-500 mb-4">
             {churchName} · {formatDate(demand.created_at)}
           </p>
+          <DemandActions demandId={id} canEdit={userCanEdit} />
           {demand.description && (
             <p className="text-gray-700 whitespace-pre-wrap">
               {demand.description}

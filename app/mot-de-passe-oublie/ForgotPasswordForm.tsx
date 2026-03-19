@@ -17,7 +17,7 @@ export function ForgotPasswordForm() {
     const redirectTo =
       typeof window !== "undefined"
         ? `${window.location.origin}/reinitialiser-mot-de-passe`
-        : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reinitialiser-mot-de-passe`;
+        : `${(await import("@/lib/app-url")).getAppBaseUrl()}/reinitialiser-mot-de-passe`;
 
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo,

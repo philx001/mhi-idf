@@ -49,6 +49,9 @@ export function ProfilClient({ user: initialUser }: Props) {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
+  const [rgpdConsent, setRgpdConsent] = useState(false);
+  const hasRgpdConsent = (initialUser.user_metadata?.rgpd_consent_date as string) != null;
+
   const supabase = createClient();
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -119,6 +122,10 @@ export function ProfilClient({ user: initialUser }: Props) {
       setProfileMessage({ type: "error", text: "Le numéro de téléphone est obligatoire." });
       return;
     }
+    if (!hasRgpdConsent && !rgpdConsent) {
+      setProfileMessage({ type: "error", text: "Veuillez accepter le traitement de vos données personnelles (RGPD) avant d'enregistrer." });
+      return;
+    }
     setProfileSaving(true);
     const { error } = await supabase.auth.updateUser({
       email: em,
@@ -127,6 +134,7 @@ export function ProfilClient({ user: initialUser }: Props) {
         full_name: ln,
         phone: ph,
         avatar_url: avatar_url.trim() || undefined,
+        ...(rgpdConsent && { rgpd_consent_date: new Date().toISOString() }),
       },
     });
     setProfileSaving(false);
@@ -167,7 +175,7 @@ export function ProfilClient({ user: initialUser }: Props) {
           <CardTitle className="text-lg">Informations personnelles</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleSaveProfile} className="space-y-4">
+          <form id="profile-form" onSubmit={handleSaveProfile} className="space-y-4">
             <div>
               <label htmlFor="first_name" className="block text-sm font-medium text-foreground mb-1">
                 Prénom <span className="text-destructive">*</span>
@@ -210,6 +218,9 @@ export function ProfilClient({ user: initialUser }: Props) {
                 className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring"
                 placeholder="vous@exemple.fr"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                En cas de changement d&apos;email, un lien de confirmation sera envoyé à la nouvelle adresse. La connexion restera possible avec l&apos;ancienne adresse jusqu&apos;à ce que vous cliquiez sur ce lien.
+              </p>
             </div>
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1">
@@ -292,7 +303,8 @@ export function ProfilClient({ user: initialUser }: Props) {
                 !first_name.trim() ||
                 !full_name.trim() ||
                 !email.trim() ||
-                !phone.trim()
+                !phone.trim() ||
+                (!hasRgpdConsent && !rgpdConsent)
               }
               className={cn(buttonVariants())}
             >
@@ -393,6 +405,57 @@ export function ProfilClient({ user: initialUser }: Props) {
               Sombre
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card id="rgpd" className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+        <CardHeader>
+          <CardTitle className="text-lg">Protection des données personnelles (RGPD)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <div className="space-y-3 text-foreground/90">
+            <p>
+              <strong>Responsable du traitement</strong> : L&apos;application MHI-IDF (Réseau des églises d&apos;Île-de-France) traite vos données personnelles pour la gestion des membres et des activités du réseau.
+            </p>
+            <p>
+              <strong>Données collectées</strong> : prénom, nom, adresse email, numéro de téléphone, photo de profil, ainsi que vos affiliations aux églises et votre participation aux événements.
+            </p>
+            <p>
+              <strong>Finalités</strong> : gestion des comptes utilisateurs, attribution des rôles (membre, responsable d&apos;église), coordination des églises du réseau, organisation des événements et communications internes.
+            </p>
+            <p>
+              <strong>Base légale</strong> : exécution du contrat (utilisation du service) et consentement explicite pour les données facultatives.
+            </p>
+            <p>
+              <strong>Destinataires</strong> : les responsables d&apos;église et administrateurs du réseau peuvent accéder aux données nécessaires à leur mission. Les données sont hébergées par Supabase (Union européenne).
+            </p>
+            <p>
+              <strong>Durée de conservation</strong> : vos données sont conservées tant que votre compte est actif. En cas de suppression de compte, les données sont effacées dans les délais légaux.
+            </p>
+            <p>
+              <strong>Vos droits</strong> : vous disposez d&apos;un droit d&apos;accès, de rectification, de suppression et de portabilité de vos données. Vous pouvez vous opposer au traitement ou introduire une réclamation auprès de la CNIL (www.cnil.fr).
+            </p>
+          </div>
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={rgpdConsent || hasRgpdConsent}
+              onChange={(e) => setRgpdConsent(e.target.checked)}
+              disabled={hasRgpdConsent}
+              className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring"
+              aria-describedby="rgpd-summary"
+            />
+            <span id="rgpd-summary" className="text-foreground font-medium">
+              {hasRgpdConsent
+                ? "J'ai déjà accepté le traitement de mes données personnelles."
+                : "J'ai lu les informations ci-dessus et j'accepte le traitement de mes données personnelles conformément au RGPD."}
+            </span>
+          </label>
+          {!hasRgpdConsent && (
+            <p className="text-xs">
+              La case doit être cochée pour enregistrer votre profil. Votre consentement sera enregistré avec la date.
+            </p>
+          )}
         </CardContent>
       </Card>
 

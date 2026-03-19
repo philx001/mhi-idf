@@ -110,16 +110,19 @@ export default async function PlanningPage({
           Planning partagé
         </h1>
         <p className="text-gray-600 text-sm mb-6">
-          Sessions (prière, culte, étude biblique…) : chaque créneau peut accueillir jusqu’à 3 noms par église (titulaire + remplaçants).
+          Sessions (prière, culte, étude biblique…) : chaque créneau peut accueillir jusqu’à 3 membres maximum.
         </p>
         <PlanningContent
           sessions={data.sessions}
           signups={data.signups}
           userDisplayNames={data.userDisplayNames}
+          churchNames={data.churchNames}
           canCreateSession={data.canCreateSession}
           canAddSignup={data.canAddSignup}
           churchMembers={data.churchMembers}
           currentUserId={data.currentUserId}
+          userChurchId={data.userChurchId}
+          isResponsableEglise={data.isResponsableEglise}
           filterFrom={rangeFrom}
           filterTo={rangeTo}
           filterMonth={month}

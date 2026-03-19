@@ -48,6 +48,14 @@ export default async function CarteDesBesoinsPage({
 
   const canCreateDemand = auth.roleInfo.isSiege || auth.roleInfo.isResponsableEglise;
   const demands = await getDemands(type);
+  const userChurchId = auth.roleInfo.churchId;
+  const canEditMap = Object.fromEntries(
+    demands.map((d) => [
+      d.id,
+      auth.roleInfo.isSiege ||
+        (auth.roleInfo.isResponsableEglise && userChurchId === d.church_id),
+    ])
+  );
 
   return (
     <main className="min-h-screen p-4 sm:p-8">
@@ -74,7 +82,7 @@ export default async function CarteDesBesoinsPage({
           <div className="mb-4">
             <Link
               href="/carte-des-besoins/nouvelle"
-              className="text-green-600 hover:underline text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition text-sm"
             >
               + Créer une demande
             </Link>
@@ -94,7 +102,8 @@ export default async function CarteDesBesoinsPage({
                 key={demand.id}
                 className="border border-gray-200 rounded-lg p-4 bg-white"
               >
-                <Link href={`/carte-des-besoins/${demand.id}`} className="block">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <Link href={`/carte-des-besoins/${demand.id}`} className="block flex-1 min-w-0">
                   <p className="font-medium text-gray-900 hover:text-blue-600 hover:underline">
                     {demand.title}
                   </p>
@@ -122,6 +131,15 @@ export default async function CarteDesBesoinsPage({
                     </p>
                   )}
                 </Link>
+                {canEditMap[demand.id] && (
+                  <Link
+                    href={`/carte-des-besoins/${demand.id}/edit`}
+                    className="text-sm text-blue-600 hover:underline shrink-0"
+                  >
+                    Modifier
+                  </Link>
+                )}
+              </div>
               </li>
             ))}
           </ul>

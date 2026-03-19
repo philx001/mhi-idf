@@ -3,10 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { inviteUserByEmail, createUserWithPassword } from "../actions";
+import type { AppRole } from "../actions";
 
 type ChurchOption = { id: string; name: string };
 
 type Mode = "email" | "password";
+
+const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
+  { value: "membre", label: "Membre" },
+  { value: "responsable_eglise", label: "Responsable église" },
+];
 
 interface InviteFormProps {
   /** Église par défaut (ex. église du responsable). Si fournie, le rôle membre est attribué automatiquement. */
@@ -21,6 +27,7 @@ export function InviteForm({ defaultChurchId = null, churches = [] }: InviteForm
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [churchId, setChurchId] = useState<string>(defaultChurchId ?? "");
+  const [role, setRole] = useState<AppRole>("membre");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -48,7 +55,7 @@ export function InviteForm({ defaultChurchId = null, churches = [] }: InviteForm
     const result =
       mode === "email"
         ? await inviteUserByEmail(email.trim(), effectiveChurchId)
-        : await createUserWithPassword(email.trim(), password, effectiveChurchId);
+        : await createUserWithPassword(email.trim(), password, effectiveChurchId, role);
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -150,6 +157,23 @@ export function InviteForm({ defaultChurchId = null, churches = [] }: InviteForm
 
           {mode === "password" && (
             <>
+              <div>
+                <label htmlFor="invite-role" className="block text-xs font-medium text-gray-700 mb-1">
+                  Rôle à attribuer
+                </label>
+                <select
+                  id="invite-role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as AppRole)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  {ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label htmlFor="invite-password" className="block text-xs font-medium text-gray-700 mb-1">
                   Mot de passe temporaire

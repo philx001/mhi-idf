@@ -45,7 +45,9 @@ export async function getUsersWithRoles(options?: GetUsersWithRolesOptions): Pro
   }
   const { roleInfo } = auth;
   const canAccess =
-    roleInfo.isSiege || roleInfo.isResponsableEglise;
+    roleInfo.isSiege ||
+    roleInfo.isResponsableEglise ||
+    (options?.forPlanning && roleInfo.role === "membre" && !!roleInfo.churchId);
   if (!canAccess) {
     return { users: [], usersWithoutRole: [], currentUserRole: roleInfo.role, currentUserChurchId: roleInfo.churchId, error: "Accès refusé" };
   }
@@ -55,7 +57,7 @@ export async function getUsersWithRoles(options?: GetUsersWithRolesOptions): Pro
 
   try {
     const [rolesResult, usersResult] = await Promise.all([
-      supabase.from("user_roles").select("user_id, role, church_id"),
+      adminSupabase.from("user_roles").select("user_id, role, church_id"),
       adminSupabase.auth.admin.listUsers({ perPage: 200 }),
     ]);
 
@@ -237,6 +239,7 @@ export async function assignRole(
   }
 
   revalidatePath("/admin/gestion-utilisateurs");
+  revalidatePath("/churches");
   if (finalChurchId) revalidatePath(`/churches/${finalChurchId}`);
   return {};
 }
@@ -365,11 +368,13 @@ export async function updateUserRole(
 /**
  * Crée un utilisateur avec email et mot de passe (sans envoi d'email).
  * Option B : le responsable communique le mot de passe à l'utilisateur en personne.
+ * @param role Rôle à attribuer : "membre" ou "responsable_eglise" (admin uniquement pour admin)
  */
 export async function createUserWithPassword(
   email: string,
   password: string,
-  churchId?: string | null
+  churchId?: string | null,
+  role: AppRole = "membre"
 ): Promise<{ error?: string }> {
   const current = await getCurrentRoleChurchAndCroissy();
   if (!current) return { error: "Non authentifié" };
@@ -381,11 +386,18 @@ export async function createUserWithPassword(
     return { error: "Le mot de passe doit contenir au moins 6 caractères." };
   }
 
+  if (role === "admin") return { error: "Seul l'administrateur peut créer un compte admin." };
+  if (isEgliseUser && role === "admin") return { error: "Seul l'administrateur peut attribuer ce rôle." };
+
   if (isEgliseUser && !current.isCroissyResponsible && current.churchId) {
     if (churchId && churchId !== current.churchId) {
       return { error: "Vous ne pouvez créer que pour votre église." };
     }
     if (!churchId) churchId = current.churchId;
+  }
+
+  if (role !== "admin" && !churchId) {
+    return { error: "Une église doit être sélectionnée pour ce rôle." };
   }
 
   const adminSupabase = createAdminClient();
@@ -402,10 +414,11 @@ export async function createUserWithPassword(
       const supabase = await createClient();
       const currentUser = await getUserWithTimeout(supabase);
       if (currentUser && churchId) {
+        const finalRole = role === "admin" ? "membre" : role;
         const { error: assignErr } = await adminSupabase
           .from("user_roles")
           .upsert(
-            { user_id: data.user.id, role: "membre", church_id: churchId },
+            { user_id: data.user.id, role: finalRole, church_id: churchId },
             { onConflict: "user_id" }
           );
         if (assignErr) {
@@ -416,12 +429,13 @@ export async function createUserWithPassword(
           target_type: "user",
           target_id: data.user.id,
           performed_by: currentUser.id,
-          details: { role: "membre", church_id: churchId },
+          details: { role: finalRole, church_id: churchId },
         });
       }
     }
 
     revalidatePath("/admin/gestion-utilisateurs");
+    revalidatePath("/churches");
     if (churchId) revalidatePath(`/churches/${churchId}`);
     return {};
   } catch (err) {
@@ -457,10 +471,8 @@ export async function inviteUserByEmail(
   }
 
   const adminSupabase = createAdminClient();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.VERCEL_URL ||
-    "http://localhost:3000";
+  const { getAppBaseUrl } = await import("@/lib/app-url");
+  const baseUrl = getAppBaseUrl();
 
   try {
     const { data, error } = await adminSupabase.auth.admin.inviteUserByEmail(email, {

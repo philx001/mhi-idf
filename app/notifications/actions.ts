@@ -40,9 +40,8 @@ async function sendUrgentNotificationToResponsables(
   if (emails.length === 0) return;
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    const { getAppBaseUrl } = await import("@/lib/app-url");
+    const baseUrl = getAppBaseUrl();
     await fetch(`${baseUrl}/api/notifications/urgent`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
